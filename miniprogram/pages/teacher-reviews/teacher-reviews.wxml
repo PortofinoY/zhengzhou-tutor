@@ -1,0 +1,37 @@
+<view class="page reviews-page">
+  <view class="section header-card">
+    <view class="title"><text class="title-icon">评</text>我的评价</view>
+    <view class="subtitle">查看家长在已完成订单后的服务反馈。</view>
+  </view>
+
+  <view wx:if="{{teacher}}" class="section teacher-summary">
+    <image class="avatar teacher-avatar" src="{{teacher.avatar}}" mode="aspectFill"></image>
+    <view class="summary-main">
+      <view class="summary-title">{{teacher.displayName}}</view>
+      <view class="summary-desc">{{teacher.school}} · {{teacher.major}}</view>
+      <view class="summary-tags">
+        <text class="tag-cert">{{teacher.auditStatusText}}</text>
+        <text class="tag-neutral">评分 {{teacher.rating || '暂无'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{reviews.length === 0}}" class="empty">{{emptyText}}</view>
+
+  <view wx:for="{{reviews}}" wx:key="id" class="review-card review-item">
+    <view class="review-head">
+      <view>
+        <view class="review-parent">{{item.parentNickname}}</view>
+        <view class="review-time">{{item.createdAt}}</view>
+      </view>
+      <view class="review-score">{{item.starRating}}分</view>
+    </view>
+    <view class="rating-grid">
+      <text>态度 {{item.attitudeRating}}</text>
+      <text>准时 {{item.punctualityRating}}</text>
+      <text>清晰 {{item.clarityRating}}</text>
+      <text>接受度 {{item.childAcceptanceRating}}</text>
+    </view>
+    <view class="review-content">{{item.content || '家长未填写文字评价'}}</view>
+  </view>
+</view>

@@ -1,0 +1,59 @@
+<view class="page home-page">
+  <view class="top-visual fade-up">
+    <image class="top-bg" src="/assets/home-top-bg.jpg" mode="aspectFill" />
+    <view class="home-top">
+      <view class="brand-row">
+        <view class="brand-name">郑州家教</view>
+      </view>
+
+      <view class="search-card">
+        <text class="search-icon">⌕</text>
+        <input class="search-input" placeholder-class="search-input-placeholder" placeholder="{{homeConfig.searchPlaceholder}}" value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="search" />
+        <button class="search-button" bindtap="search">搜索</button>
+      </view>
+    </view>
+
+    <view class="stage-row">
+      <view wx:for="{{stageShortcuts}}" wx:key="grade" class="stage-item stage-{{item.tone}}" data-grade="{{item.grade}}" bindtap="openStage">
+        <view class="stage-icon">{{item.icon}}</view>
+        <view class="stage-name">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="home-actions fade-up">
+    <view class="audience-column">
+      <view class="audience-card" bindtap="goTeacherList">
+        <view class="audience-copy">
+          <view class="audience-title">找老师</view>
+          <view class="audience-desc">面向家长，匹配认证优质老师</view>
+        </view>
+        <view class="audience-icon arrow-icon">↗</view>
+      </view>
+
+      <view class="audience-card" bindtap="goFindParents">
+        <view class="audience-copy">
+          <view class="audience-title">找家长</view>
+          <view class="audience-desc">面向老师，查看家长辅导需求</view>
+        </view>
+        <view class="audience-icon pin-icon">⌖</view>
+      </view>
+    </view>
+
+    <view class="match-card" bindtap="goTeacherList">
+      <view class="match-title">快速匹配</view>
+      <view class="match-desc">优质老师推荐功能</view>
+      <button class="match-button">立即匹配</button>
+    </view>
+  </view>
+
+  <view class="recommend-section fade-up">
+    <view class="section-title">更多推荐</view>
+    <view class="recommend-grid">
+      <view wx:for="{{recommendTiles}}" wx:key="key" class="recommend-tile tile-{{item.tone}}" data-key="{{item.key}}" bindtap="openRecommendTile">
+        <view class="tile-title">{{item.title}}</view>
+        <view class="tile-desc">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+</view>

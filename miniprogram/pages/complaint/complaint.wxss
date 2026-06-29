@@ -1,0 +1,7 @@
+.image-count {
+  margin: 12rpx 0 22rpx;
+}
+
+.submit {
+  margin-top: 18rpx;
+}

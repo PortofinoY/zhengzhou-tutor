@@ -1,0 +1,3 @@
+.admin-webview-error {
+  min-height: 100vh;
+}

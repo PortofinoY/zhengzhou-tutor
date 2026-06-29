@@ -1,0 +1,36 @@
+<view class="page requirements-page">
+  <view class="requirement-filter">
+    <view class="filter-title">家长需求</view>
+    <view class="filter-subtitle">老师可查看基础需求，审核通过后可付费解锁联系方式。</view>
+    <view class="search-panel">
+      <text class="search-icon">⌕</text>
+      <input class="search-input" placeholder="搜索科目、区域、年级" value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="search" />
+      <button class="search-button" bindtap="search">搜索</button>
+    </view>
+    <view class="filter-grid">
+      <picker range="{{subjects}}" bindchange="selectFilter" data-field="subject">
+        <view class="picker compact">{{filter.subject || '科目'}}</view>
+      </picker>
+      <picker range="{{areas}}" bindchange="selectFilter" data-field="area">
+        <view class="picker compact">{{filter.area || '区域'}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <view wx:if="{{requirements.length === 0}}" class="empty">暂无家长需求</view>
+
+  <view wx:for="{{requirements}}" wx:key="id" class="requirement-card tap-active" data-id="{{item.id}}" bindtap="openRequirement">
+    <view class="requirement-head">
+      <view>
+        <view class="requirement-title">{{item.childGrade}} · {{item.subject}}</view>
+        <view class="requirement-meta">{{item.parentDisplayName}}｜{{item.district}}</view>
+      </view>
+      <view class="requirement-price">¥{{item.budgetPrice}}/小时</view>
+    </view>
+    <view class="requirement-desc">{{item.studySituation}}</view>
+    <view class="tag-row">
+      <text class="tag">{{item.expectedTime}}</text>
+      <text class="tag-neutral">{{item.unlocked ? '已解锁' : '联系方式未解锁'}}</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,7 @@
+<view wx:if="{{errorText}}" class="page admin-webview-error">
+  <view class="section">
+    <view class="title"><text class="title-icon">管</text>无法打开后台</view>
+    <view class="subtitle">{{errorText}}</view>
+  </view>
+</view>
+<web-view wx:else src="{{webUrl}}"></web-view>

@@ -1,0 +1,81 @@
+.register-page {
+  padding-bottom: 44rpx;
+}
+
+.brand-card {
+  background: #1E3A5F;
+  color: #FFFFFF;
+}
+
+.brand-card .title,
+.brand-card .subtitle {
+  color: #FFFFFF;
+}
+
+.brand-card .subtitle {
+  opacity: 0.84;
+}
+
+.brand-card .title-icon {
+  color: #1E3A5F;
+  background: #FFFFFF;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.code-input {
+  flex: 1;
+}
+
+.code-btn {
+  width: 188rpx;
+  min-height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  color: #1E3A5F;
+  background: #FFFFFF;
+  border: 1rpx solid #E5EAF0;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.form-hint {
+  margin-top: 10rpx;
+  color: #6B7280;
+  font-size: 23rpx;
+}
+
+.agreement {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8rpx;
+  margin: 8rpx 0 24rpx;
+  color: #6B7280;
+  line-height: 1.8;
+}
+
+.link,
+.login-link {
+  color: #2BB3A3;
+  font-weight: 800;
+}
+
+.login-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  margin-top: 26rpx;
+  font-size: 25rpx;
+}
+
+.login-text {
+  color: #6B7280;
+}

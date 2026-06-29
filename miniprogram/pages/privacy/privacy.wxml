@@ -1,0 +1,14 @@
+<view class="page">
+  <view class="section">
+    <view class="title"><text class="title-icon">隐</text>隐私政策</view>
+    <view class="subtitle">平台按最小必要原则处理用户信息。</view>
+  </view>
+  <view class="section text">
+    <view>1. 平台不会公开展示用户手机号、家长详细地址和未成年人真实姓名。</view>
+    <view>2. 游客不能查看老师真实姓名、联系方式和认证材料原图。</view>
+    <view>3. 老师认证材料原图仅供平台管理员审核使用。</view>
+    <view>4. 详细地址仅在老师接受订单后向该老师展示。</view>
+    <view>5. 平台会保留订单操作记录和投诉处理记录，用于争议核实与服务安全。</view>
+    <view>6. 如需注销账号或处理个人信息问题，请通过客服入口联系平台。</view>
+  </view>
+</view>

@@ -1,0 +1,87 @@
+<view class="page teachers-page">
+  <view class="teacher-filter">
+    <view class="filter-head">
+      <view>
+        <view class="filter-kicker">挑老师</view>
+        <view class="filter-title">先选年级段，再选科目</view>
+      </view>
+      <button class="reset-button" bindtap="clearPrimaryFilter">重置</button>
+    </view>
+
+    <view class="stage-grid">
+      <view wx:for="{{stageTabs}}" wx:key="value" class="stage-card {{selectedStage === item.value ? 'active' : ''}}" data-stage="{{item.value}}" bindtap="selectStage">
+        <text class="stage-icon">{{item.icon}}</text>
+        <view>
+          <view class="stage-title">{{item.label}}</view>
+          <view class="stage-hint">{{item.hint}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="subject-panel">
+      <view class="subject-title">{{selectedStage}}科目</view>
+      <view class="subject-grid">
+        <view wx:for="{{visibleSubjects}}" wx:key="value" class="subject-chip subject-{{item.tone}} {{filter.subject === item.value ? 'active' : ''}}" data-subject="{{item.value}}" bindtap="selectSubject">{{item.label}}</view>
+      </view>
+    </view>
+
+    <view class="search-panel row">
+      <text class="search-icon">⌕</text>
+      <input class="search-input" placeholder="搜索学校、专业、老师或科目" value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="search" />
+      <button class="search-button" bindtap="search">搜索</button>
+    </view>
+
+    <view class="filter-grid">
+      <picker range="{{areas}}" bindchange="selectFilter" data-field="area">
+        <view class="picker compact"><text class="field-icon">区</text><text>{{filter.area || '服务区域'}}</text></view>
+      </picker>
+      <picker range="{{schools}}" bindchange="selectFilter" data-field="school">
+        <view class="picker compact"><text class="field-icon">校</text><text>{{filter.school || '学校'}}</text></view>
+      </picker>
+      <picker range="{{genders}}" bindchange="selectFilter" data-field="gender">
+        <view class="picker compact"><text class="field-icon">性</text><text>{{filter.gender || '性别'}}</text></view>
+      </picker>
+      <input class="input compact" placeholder="最高价" type="number" value="{{filter.maxPrice}}" bindinput="onPriceInput" confirm-type="done" bindconfirm="search" />
+      <picker range="{{sorts}}" range-key="label" bindchange="selectSort">
+        <view class="picker compact wide"><text class="field-icon">序</text><text>{{sortLabel}}</text></view>
+      </picker>
+    </view>
+  </view>
+
+  <view class="result-head">
+    <view class="result-title">推荐老师</view>
+    <view class="result-count">共 {{teachers.length}} 位</view>
+  </view>
+
+  <view wx:if="{{teachers.length === 0}}" class="empty">暂无符合条件的老师，请更换筛选条件</view>
+  <view wx:for="{{teachers}}" wx:key="id" class="teacher-card list-teacher-card" data-id="{{item.id}}" bindtap="openTeacher">
+    <view class="teacher-row">
+      <image class="avatar teacher-avatar" src="{{item.avatar}}" mode="aspectFill" />
+      <view class="teacher-main">
+        <view class="teacher-name-row">
+          <view class="teacher-name">{{item.displayName}}</view>
+          <view class="price">{{item.hourlyRate}}元/小时</view>
+        </view>
+        <view class="teacher-school">{{item.school}} · {{item.major}}</view>
+        <view class="teacher-badges">
+          <text wx:for="{{item.certificationTags}}" wx:key="*this" class="badge verified">{{item}}</text>
+          <text class="badge">评分 {{item.rating}}</text>
+          <text class="badge">完成 {{item.completedOrderCount}} 单</text>
+        </view>
+      </view>
+    </view>
+    <view class="tag-row">
+      <text class="tag" wx:for="{{item.subjects}}" wx:key="*this">{{item}}</text>
+      <text class="tag-neutral" wx:for="{{item.teachGrades}}" wx:key="*this">{{item}}</text>
+    </view>
+    <view wx:if="{{item.suitableTags && item.suitableTags.length}}" class="suitable-row">
+      <block wx:for="{{item.suitableTags}}" wx:key="*this">
+        <text wx:if="{{index < 2}}" class="suitable-tag">{{item}}</text>
+      </block>
+    </view>
+    <view class="teacher-bottom">
+      <view class="teacher-area">可上门：{{item.serviceAreaText}}</view>
+      <view class="detail-link"><text>查看</text><text class="arrow">›</text></view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,39 @@
+<view class="page">
+  <view wx:if="{{teacher}}" class="section">
+    <view class="between">
+      <view>
+        <view class="title"><text class="title-icon">台</text>老师工作台</view>
+        <view class="subtitle">{{teacher.auditStatusText}} {{teacher.rejectReason ? ' · ' + teacher.rejectReason : ''}}</view>
+      </view>
+      <switch checked="{{teacher.orderStatus === 'available'}}" disabled="{{teacher.auditStatus !== 'approved'}}" bindchange="toggleOrderStatus" />
+    </view>
+  </view>
+  <view wx:else class="section">
+    <view class="title"><text class="title-icon">＋</text>尚未入驻</view>
+    <view class="subtitle">提交资料并通过审核后即可接收预约订单。</view>
+    <button class="btn btn-primary" bindtap="goApply"><text class="btn-icon">＋</text><text>去入驻</text></button>
+  </view>
+
+  <view class="grid">
+    <view class="stat"><text class="stat-icon">今</text><text>今日订单</text><strong>{{stats.today || 0}}</strong></view>
+    <view class="stat"><text class="stat-icon">待</text><text>待确认</text><strong>{{stats.pending || 0}}</strong></view>
+    <view class="stat"><text class="stat-icon">✓</text><text>已完成</text><strong>{{stats.completed || 0}}</strong></view>
+  </view>
+
+  <view wx:if="{{teacher}}" class="section completeness-section">
+    <view class="between">
+      <view>
+        <view class="label">资料完整度</view>
+        <view class="muted">完整度低于 60% 时不进入首页推荐</view>
+      </view>
+      <text class="completeness-value">{{profileCompleteness}}%</text>
+    </view>
+    <view class="progress-track"><view class="progress-bar" style="width: {{profileCompleteness}}%;"></view></view>
+  </view>
+
+  <view class="section">
+    <button class="btn btn-ghost" bindtap="goApply"><text class="btn-icon">档</text><text>我的资料</text></button>
+    <button class="btn btn-ghost" bindtap="goOrders"><text class="btn-icon">单</text><text>我的订单</text></button>
+    <button class="btn btn-ghost" bindtap="goReviews"><text class="btn-icon">评</text><text>我的评价</text></button>
+  </view>
+</view>

@@ -1,0 +1,81 @@
+.identity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.identity-card {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  min-height: 190rpx;
+  padding: 30rpx;
+  border: 1rpx solid #E5EAF0;
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  box-shadow: 0 4rpx 24rpx rgba(30, 58, 95, 0.06);
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.identity-card:active {
+  transform: scale(0.985);
+  opacity: 0.9;
+}
+
+.identity-icon {
+  width: 82rpx;
+  height: 82rpx;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 26rpx;
+  color: #2BB3A3;
+  background: #E8F7F4;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.teacher-card .identity-icon {
+  color: #1E3A5F;
+  background: #EEF4FA;
+}
+
+.identity-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.identity-title {
+  color: #1F2933;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.identity-desc {
+  margin-top: 10rpx;
+  color: #6B7280;
+  font-size: 25rpx;
+  line-height: 1.55;
+}
+
+.identity-next {
+  margin-top: 14rpx;
+  color: #2BB3A3;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.title-icon {
+  width: 50rpx;
+  height: 50rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12rpx;
+  border-radius: 16rpx;
+  color: #FFFFFF;
+  background: #1E3A5F;
+  font-size: 26rpx;
+  vertical-align: middle;
+}

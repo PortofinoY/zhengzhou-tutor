@@ -1,0 +1,64 @@
+.stat {
+  min-height: 136rpx;
+  border: 1rpx solid #E5EAF0;
+  border-radius: 12rpx;
+  background: #FFFFFF;
+  padding: 20rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 4rpx 24rpx rgba(30, 58, 95, 0.06);
+}
+
+.stat text {
+  color: #6B7280;
+  font-size: 24rpx;
+}
+
+.stat strong {
+  margin-top: 8rpx;
+  font-size: 40rpx;
+}
+
+.stat-icon {
+  width: 44rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10rpx;
+  border-radius: 14rpx;
+  color: #2BB3A3;
+  background: #E8F7F4;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.section .btn {
+  margin-bottom: 16rpx;
+}
+
+.completeness-section {
+  margin-top: 20rpx;
+}
+
+.completeness-value {
+  color: #1E3A5F;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.progress-track {
+  height: 12rpx;
+  margin-top: 18rpx;
+  overflow: hidden;
+  border-radius: 999rpx;
+  background: #E5EAF0;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 999rpx;
+  background: #2BB3A3;
+  transition: width 220ms ease;
+}

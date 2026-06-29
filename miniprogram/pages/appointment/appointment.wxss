@@ -1,0 +1,10 @@
+.teacher-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.picker-value {
+  display: flex;
+  align-items: center;
+  color: #6B7280;
+}

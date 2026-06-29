@@ -1,0 +1,14 @@
+<view class="page">
+  <view class="section">
+    <view class="title"><text class="title-icon">约</text>用户协议</view>
+    <view class="subtitle">郑州大学生上门家教小程序 MVP</view>
+  </view>
+  <view class="section text">
+    <view>1. 平台仅提供信息展示、预约撮合和服务记录功能，具体授课内容与双方约定有关。</view>
+    <view>2. 平台不承诺学生成绩提升结果，不使用“保分”“保过”“快速提分”“名校必上”等结果承诺。</view>
+    <view>3. MVP 阶段不提供线上支付、担保交易、即时聊天、直播课程和课程包售卖。</view>
+    <view>4. 家长应如实填写预约信息，老师接受订单前不会看到详细地址。</view>
+    <view>5. 老师应提交真实大学生身份材料，关键认证资料变更后需重新审核。</view>
+    <view>6. 双方应遵守当地校外培训相关规定，平台可对违规账号采取冻结、封禁等处理。</view>
+  </view>
+</view>

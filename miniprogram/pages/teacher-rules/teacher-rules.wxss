@@ -1,0 +1,56 @@
+.rules-page {
+  padding-bottom: 44rpx;
+}
+
+.header-card {
+  background: #1E3A5F;
+  color: #FFFFFF;
+}
+
+.header-card .title,
+.header-card .subtitle {
+  color: #FFFFFF;
+}
+
+.header-card .subtitle {
+  opacity: 0.82;
+}
+
+.rule-card {
+  display: flex;
+  gap: 18rpx;
+  margin-bottom: 22rpx;
+  padding: 26rpx;
+  border: 1rpx solid #E5EAF0;
+  border-radius: 22rpx;
+  background: #FFFFFF;
+  box-shadow: 0 4rpx 24rpx rgba(30, 58, 95, 0.06);
+}
+
+.rule-icon {
+  width: 50rpx;
+  height: 50rpx;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+  background: #E8F7F4;
+  color: #2BB3A3;
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.rule-title {
+  color: #1F2933;
+  font-size: 29rpx;
+  font-weight: 900;
+  line-height: 1.28;
+}
+
+.rule-desc {
+  margin-top: 8rpx;
+  color: #6B7280;
+  font-size: 25rpx;
+  line-height: 1.58;
+}

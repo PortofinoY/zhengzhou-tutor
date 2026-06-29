@@ -1,0 +1,78 @@
+.profile-band {
+  text-align: center;
+}
+
+.avatar-large {
+  width: 144rpx;
+  height: 144rpx;
+  margin-bottom: 18rpx;
+  border-radius: 8rpx;
+  background: #E5EAF0;
+}
+
+.tag-row {
+  margin-top: 12rpx;
+}
+
+.price {
+  color: #1E3A5F;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.spacing {
+  margin-top: 22rpx;
+}
+
+.text-block {
+  font-size: 28rpx;
+  line-height: 1.7;
+}
+
+.trust-card {
+  padding: 24rpx;
+}
+
+.trust-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  color: #1F2933;
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+.trust-line + .trust-line {
+  margin-top: 16rpx;
+}
+
+.trust-icon {
+  width: 44rpx;
+  height: 44rpx;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14rpx;
+  background: #E8F7F4;
+  color: #2BB3A3;
+  font-size: 22rpx;
+  font-weight: 900;
+}
+
+.suitable-tag {
+  color: #1E3A5F;
+  background: #F2F6FA;
+}
+
+.review-dims {
+  margin: 12rpx 0 8rpx;
+  color: #6B7280;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.teacher-name {
+  font-size: 28rpx;
+  font-weight: 700;
+}

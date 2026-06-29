@@ -1,0 +1,56 @@
+<view class="page orders-page">
+  <view wx:if="{{!isLogin}}" class="orders-empty-card fade-up">
+    <view class="orders-empty-icon">单</view>
+    <view class="orders-empty-title">请登录后查看</view>
+    <view class="orders-empty-desc">登录后可查看预约进度、上课状态和历史订单。</view>
+    <view class="orders-empty-actions">
+      <button class="btn btn-primary" bindtap="goLogin"><text class="btn-icon">登</text><text>去登录</text></button>
+      <button class="btn btn-ghost" bindtap="goHome"><text class="btn-icon">首</text><text>返回首页</text></button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="orders-hero fade-up">
+      <view>
+        <view class="orders-title">我的订单</view>
+        <view class="orders-subtitle">查看预约确认、上课进度和完成记录</view>
+      </view>
+      <view class="orders-role-badge">{{role === 'teacher' ? '老师视角' : '家长视角'}}</view>
+    </view>
+
+    <view class="orders-filter-card fade-up">
+      <view class="role-current">
+        <view class="role-current-icon">{{role === 'teacher' ? '师' : '家'}}</view>
+        <view>
+          <view class="role-current-title">{{roleLabel}}</view>
+          <view class="role-current-desc">根据当前登录身份自动展示</view>
+        </view>
+      </view>
+      <scroll-view scroll-x class="tabs" enhanced show-scrollbar="{{false}}">
+        <text wx:for="{{tabs}}" wx:key="value" class="tab {{status === item.value ? 'active' : ''}}" data-status="{{item.value}}" bindtap="switchStatus">{{item.label}}</text>
+      </scroll-view>
+    </view>
+
+    <view wx:if="{{orders.length === 0}}" class="orders-list-empty fade-up">
+      <view class="orders-list-empty-icon">约</view>
+      <view class="orders-list-empty-title">暂无订单</view>
+      <view class="orders-list-empty-desc">你可以先从首页进入“找老师”提交预约。</view>
+      <button class="empty-action" bindtap="goHome">去首页</button>
+    </view>
+
+    <view wx:for="{{orders}}" wx:key="id" class="order-card order-card-new fade-up" data-id="{{item.id}}" bindtap="openDetail">
+      <view class="order-top">
+        <view class="order-no">{{item.orderNo}}</view>
+        <text class="tag {{item.status === 'completed' || item.status === 'in_class' ? 'tag-success' : ''}} {{item.status === 'pending_teacher' || item.status === 'pending_class' || item.status === 'pending_parent_confirm' ? 'tag-warning' : ''}} {{item.status === 'complaint' || item.status === 'canceled' || item.status === 'rejected' || item.status === 'closed' ? 'tag-red' : ''}}">{{item.statusText}}</text>
+      </view>
+      <view class="order-main">
+        <view class="order-avatar">{{role === 'teacher' ? '家' : '师'}}</view>
+        <view class="order-info">
+          <view class="order-person">{{role === 'teacher' ? item.parent.nickname : item.teacher.displayName}}</view>
+          <view class="order-meta">{{item.subject}} · {{item.studentGrade}}</view>
+          <view class="order-time">{{item.appointmentDate}} {{item.startTime}}-{{item.endTime}}</view>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

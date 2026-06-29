@@ -1,0 +1,46 @@
+<view class="page rules-page">
+  <view class="section header-card">
+    <view class="title"><text class="title-icon">规</text>老师服务规则</view>
+    <view class="subtitle">平台重视真实身份、预约留痕和上门服务安全。</view>
+  </view>
+
+  <view class="rule-card">
+    <text class="rule-icon">1</text>
+    <view>
+      <view class="rule-title">保持资料真实</view>
+      <view class="rule-desc">学校、专业、头像、认证材料和授课范围需要与实际情况一致。</view>
+    </view>
+  </view>
+
+  <view class="rule-card">
+    <text class="rule-icon">2</text>
+    <view>
+      <view class="rule-title">谨慎处理预约</view>
+      <view class="rule-desc">接受订单前请确认时间、区域和授课科目；无法服务时应及时拒绝。</view>
+    </view>
+  </view>
+
+  <view class="rule-card">
+    <text class="rule-icon">3</text>
+    <view>
+      <view class="rule-title">保护用户隐私</view>
+      <view class="rule-desc">家长详细地址、联系电话等信息仅用于履约，不得外传或另作他用。</view>
+    </view>
+  </view>
+
+  <view class="rule-card">
+    <text class="rule-icon">4</text>
+    <view>
+      <view class="rule-title">规范服务表达</view>
+      <view class="rule-desc">不得作出成绩、升学或考试结果承诺，授课内容以双方约定为准。</view>
+    </view>
+  </view>
+
+  <view class="rule-card">
+    <text class="rule-icon">5</text>
+    <view>
+      <view class="rule-title">配合平台处理异常</view>
+      <view class="rule-desc">遇到爽约、费用争议或安全问题，请通过订单投诉入口保留记录。</view>
+    </view>
+  </view>
+</view>

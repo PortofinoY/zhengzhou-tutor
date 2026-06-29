@@ -1,0 +1,20 @@
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #E5EAF0;
+}
+
+.detail-row text:first-child {
+  flex: none;
+  color: #6B7280;
+}
+
+.detail-row text:last-child {
+  text-align: right;
+}
+
+.actions .btn {
+  margin-bottom: 16rpx;
+}

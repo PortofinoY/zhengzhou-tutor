@@ -1,0 +1,71 @@
+<view class="page">
+  <view wx:if="{{teacher}}" class="section">
+    <view class="row">
+      <image class="avatar" src="{{teacher.avatar}}" mode="aspectFill"></image>
+      <view class="teacher-main">
+        <view class="title">{{teacher.displayName}}</view>
+        <view class="subtitle">{{teacher.school}} · {{teacher.major}} · {{teacher.hourlyRate}} 元/小时</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="form-item">
+      <text class="label">授课科目</text>
+      <picker range="{{teacher.subjects}}" bindchange="onPicker" data-field="subject">
+        <view class="picker-value">{{form.subject || '请选择授课科目'}}</view>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="label">学生年级</text>
+      <picker range="{{grades}}" bindchange="onPicker" data-field="studentGrade">
+        <view class="picker-value">{{form.studentGrade || '请选择学生年级'}}</view>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="label">预约日期</text>
+      <picker mode="date" start="{{today}}" bindchange="onDate">
+        <view class="picker-value">{{form.appointmentDate || '请选择日期'}}</view>
+      </picker>
+    </view>
+    <view class="grid">
+      <view class="form-item">
+        <text class="label">开始时间</text>
+        <picker mode="time" bindchange="onTime" data-field="startTime">
+          <view class="picker-value">{{form.startTime || '开始'}}</view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="label">结束时间</text>
+        <picker mode="time" bindchange="onTime" data-field="endTime">
+          <view class="picker-value">{{form.endTime || '结束'}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="form-item">
+      <text class="label">上课区域</text>
+      <picker range="{{teacher.serviceAreas}}" bindchange="onPicker" data-field="serviceArea">
+        <view class="picker-value">{{form.serviceArea || '请选择上课区域'}}</view>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="label">详细地址</text>
+      <input class="input" maxlength="100" placeholder="请输入小区、楼栋等详细地址" value="{{form.address}}" data-field="address" bindinput="onInput" />
+    </view>
+    <view class="grid">
+      <view class="form-item">
+        <text class="label">联系人姓名</text>
+        <input class="input" maxlength="20" value="{{form.contactName}}" data-field="contactName" bindinput="onInput" />
+      </view>
+      <view class="form-item">
+        <text class="label">联系人手机号</text>
+        <input class="input" type="number" maxlength="11" value="{{form.contactPhone}}" data-field="contactPhone" bindinput="onInput" />
+      </view>
+    </view>
+    <view class="form-item">
+      <text class="label">补充说明</text>
+      <textarea class="textarea" maxlength="300" placeholder="孩子学习情况、希望重点等" value="{{form.note}}" data-field="note" bindinput="onInput"></textarea>
+    </view>
+    <button class="btn btn-primary" bindtap="submit"><text class="btn-icon">✓</text><text>提交预约</text></button>
+  </view>
+</view>

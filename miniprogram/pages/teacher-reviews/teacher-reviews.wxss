@@ -1,0 +1,102 @@
+.reviews-page {
+  padding-bottom: 44rpx;
+}
+
+.header-card {
+  background: #1E3A5F;
+  color: #FFFFFF;
+}
+
+.header-card .title,
+.header-card .subtitle {
+  color: #FFFFFF;
+}
+
+.header-card .subtitle {
+  opacity: 0.82;
+}
+
+.teacher-summary {
+  display: flex;
+  align-items: center;
+}
+
+.teacher-avatar {
+  width: 110rpx;
+  height: 110rpx;
+  border-radius: 22rpx;
+}
+
+.summary-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.summary-title {
+  color: #1F2933;
+  font-size: 32rpx;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.summary-desc,
+.review-time {
+  margin-top: 8rpx;
+  color: #6B7280;
+  font-size: 24rpx;
+  line-height: 1.45;
+}
+
+.summary-tags {
+  margin-top: 10rpx;
+}
+
+.review-item {
+  padding: 26rpx;
+}
+
+.review-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.review-parent {
+  color: #1F2933;
+  font-size: 29rpx;
+  font-weight: 900;
+  line-height: 1.28;
+}
+
+.review-score {
+  flex: none;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #E8F7F4;
+  color: #2BB3A3;
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.rating-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.rating-grid text {
+  padding: 12rpx 14rpx;
+  border-radius: 14rpx;
+  background: #F7F8FA;
+  color: #6B7280;
+  font-size: 23rpx;
+}
+
+.review-content {
+  margin-top: 20rpx;
+  color: #1F2933;
+  font-size: 26rpx;
+  line-height: 1.62;
+}

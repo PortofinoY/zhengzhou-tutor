@@ -1,0 +1,15 @@
+{
+  "name": "zz-tutor-mvp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "郑州大学生上门家教小程序 MVP：微信小程序、Node 后端、JSON 持久化、后台管理端。",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/src/index.js",
+    "dev": "node server/src/index.js",
+    "test": "node --test server/test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

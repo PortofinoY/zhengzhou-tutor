@@ -1,0 +1,26 @@
+<view class="page">
+  <view class="section">
+    <view class="title"><text class="title-icon">身</text>请选择你的身份</view>
+    <view class="subtitle">新用户需先选择身份并完善对应资料。后续可在我的页面申请另一种身份或切换已有身份。</view>
+  </view>
+
+  <view class="identity-list">
+    <view class="identity-card parent-card" bindtap="chooseParent">
+      <view class="identity-icon">家</view>
+      <view class="identity-copy">
+        <view class="identity-title">我是家长</view>
+        <view class="identity-desc">为孩子寻找合适的郑州本地大学生家教老师。</view>
+        <view class="identity-next">{{loadingRole === 'parent' ? '处理中...' : '选择后填写家长资料'}}</view>
+      </view>
+    </view>
+
+    <view class="identity-card teacher-card" bindtap="chooseTeacher">
+      <view class="identity-icon">师</view>
+      <view class="identity-copy">
+        <view class="identity-title">我是老师</view>
+        <view class="identity-desc">提交学生证和授课资料，申请成为平台家教老师。</view>
+        <view class="identity-next">{{loadingRole === 'teacher' ? '处理中...' : '选择后填写老师资料'}}</view>
+      </view>
+    </view>
+  </view>
+</view>

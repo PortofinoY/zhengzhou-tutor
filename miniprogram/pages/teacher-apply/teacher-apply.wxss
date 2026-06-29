@@ -1,0 +1,92 @@
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.choice {
+  min-height: 58rpx;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 18rpx;
+  border-radius: 10rpx;
+  color: #6B7280;
+  background: #F7F8FA;
+}
+
+.choice.active {
+  color: #FFFFFF;
+  background: #2BB3A3;
+}
+
+.completeness-card {
+  margin-top: 22rpx;
+  padding: 20rpx;
+  border: 1rpx solid #E5EAF0;
+  border-radius: 18rpx;
+  background: #F7F8FA;
+}
+
+.completeness-label {
+  color: #6B7280;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.completeness-value {
+  color: #1E3A5F;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.progress-track {
+  height: 12rpx;
+  margin-top: 16rpx;
+  overflow: hidden;
+  border-radius: 999rpx;
+  background: #E5EAF0;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 999rpx;
+  background: #2BB3A3;
+  transition: width 220ms ease;
+}
+
+.help-text {
+  margin: -2rpx 0 20rpx;
+  color: #6B7280;
+  font-size: 24rpx;
+  line-height: 1.55;
+}
+
+.readonly-value {
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 22rpx;
+  border: 1rpx solid #E5EAF0;
+  border-radius: 16rpx;
+  background: #F7F8FA;
+  color: #1F2933;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.small-label {
+  color: #6B7280;
+  font-size: 24rpx;
+}
+
+.compact-textarea {
+  min-height: 128rpx;
+}
+
+.spacing {
+  margin-top: 24rpx;
+}
+
+.submit {
+  margin: 10rpx 0 34rpx;
+}

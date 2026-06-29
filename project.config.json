@@ -1,0 +1,14 @@
+{
+  "description": "郑州大学生上门家教小程序 MVP",
+  "miniprogramRoot": "miniprogram/",
+  "compileType": "miniprogram",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true
+  },
+  "appid": "touristappid",
+  "projectname": "zz-tutor-mvp"
+}

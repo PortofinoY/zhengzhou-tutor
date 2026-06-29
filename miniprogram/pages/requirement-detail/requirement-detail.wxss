@@ -1,0 +1,59 @@
+.requirement-band {
+  background: #1E3A5F;
+}
+
+.text-block {
+  color: #1F2933;
+  font-size: 27rpx;
+  line-height: 1.7;
+}
+
+.lock-card,
+.contact-card {
+  padding: 28rpx;
+}
+
+.lock-title {
+  color: #1F2933;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.masked-line {
+  margin-top: 18rpx;
+  color: #1E3A5F;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.unlock-btn {
+  margin-top: 24rpx;
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #E5EAF0;
+}
+
+.contact-row:last-of-type {
+  border-bottom: 0;
+}
+
+.contact-label {
+  color: #6B7280;
+  font-size: 25rpx;
+}
+
+.contact-value {
+  color: #1F2933;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.contact-note {
+  margin-top: 20rpx;
+}

@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Runtime data
+server/data/db.json
+server/data/*.bak.json
+
+# Environment and local config
+.env
+.env.*
+!.env.example
+project.private.config.json
+miniprogram/project.private.config.json
+miniprogram/private.*.json
+
+# OS / editor files
+.DS_Store
+._*
+.idea/
+.vscode/
+
+# Logs and build outputs
+*.log
+npm-debug.log*
+dist/
+coverage/

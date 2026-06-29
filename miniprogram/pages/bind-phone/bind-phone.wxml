@@ -1,0 +1,21 @@
+<view class="page">
+  <view class="section">
+    <view class="title"><text class="title-icon">电</text>绑定手机号</view>
+    <view class="subtitle">{{sceneText}}</view>
+  </view>
+
+  <view class="section phone-card">
+    <view class="phone-icon">微</view>
+    <view class="phone-title">授权微信手机号</view>
+    <view class="phone-desc">为了方便老师和家长进行预约沟通，请授权手机号。手机号只用于预约联系和平台审核，不会公开展示。</view>
+    <button wx:if="{{useMockPhoneAuth}}" class="btn btn-primary" loading="{{loading}}" disabled="{{loading}}" bindtap="mockWechatPhone">
+      <text class="btn-icon">✓</text>
+      <text>{{loading ? '授权中...' : '授权手机号'}}</text>
+    </button>
+    <button wx:else class="btn btn-primary" loading="{{loading}}" disabled="{{loading}}" open-type="getPhoneNumber" bindgetphonenumber="bindWechatPhone">
+      <text class="btn-icon">✓</text>
+      <text>{{loading ? '授权中...' : '授权手机号'}}</text>
+    </button>
+    <button class="btn btn-ghost wx-phone" disabled="{{loading}}" bindtap="skip"><text class="btn-icon">返</text><text>暂不授权</text></button>
+  </view>
+</view>

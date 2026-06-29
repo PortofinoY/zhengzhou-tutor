@@ -1,0 +1,33 @@
+<view class="page" wx:if="{{order}}">
+  <view class="section">
+    <view class="between">
+      <view class="title"><text class="title-icon">单</text>{{order.orderNo}}</view>
+      <text class="tag {{order.status === 'completed' || order.status === 'in_class' ? 'tag-success' : ''}} {{order.status === 'pending_teacher' || order.status === 'pending_class' || order.status === 'pending_parent_confirm' ? 'tag-warning' : ''}} {{order.status === 'complaint' || order.status === 'canceled' || order.status === 'rejected' || order.status === 'closed' ? 'tag-red' : ''}}">{{order.statusText}}</text>
+    </view>
+    <view class="subtitle">创建时间：{{order.createdAt}}</view>
+  </view>
+
+  <view class="section">
+    <view class="detail-row"><text>老师</text><text>{{order.teacher.displayName}}</text></view>
+    <view class="detail-row"><text>家长</text><text>{{order.parent.nickname}}</text></view>
+    <view class="detail-row"><text>科目</text><text>{{order.subject}}</text></view>
+    <view class="detail-row"><text>年级</text><text>{{order.studentGrade}}</text></view>
+    <view class="detail-row"><text>预约时间</text><text>{{order.appointmentDate}} {{order.startTime}}-{{order.endTime}}</text></view>
+    <view class="detail-row"><text>上课区域</text><text>{{order.serviceArea}}</text></view>
+    <view class="detail-row"><text>详细地址</text><text>{{order.address}}</text></view>
+    <view class="detail-row"><text>联系人</text><text>{{order.contactName}}</text></view>
+    <view class="detail-row"><text>联系电话</text><text>{{order.contactPhone || '暂不可见'}}</text></view>
+    <view class="detail-row"><text>补充说明</text><text>{{order.note || '无'}}</text></view>
+  </view>
+
+  <view class="section actions">
+    <button wx:if="{{canCancel}}" class="btn btn-danger" bindtap="act" data-action="cancel"><text class="btn-icon">×</text><text>取消预约</text></button>
+    <button wx:if="{{canAccept}}" class="btn btn-primary" bindtap="act" data-action="accept"><text class="btn-icon">✓</text><text>接受预约</text></button>
+    <button wx:if="{{canReject}}" class="btn btn-danger" bindtap="act" data-action="reject"><text class="btn-icon">×</text><text>拒绝预约</text></button>
+    <button wx:if="{{canStart}}" class="btn btn-primary" bindtap="act" data-action="start"><text class="btn-icon">始</text><text>开始上课</text></button>
+    <button wx:if="{{canFinish}}" class="btn btn-primary" bindtap="act" data-action="finish"><text class="btn-icon">✓</text><text>完成授课</text></button>
+    <button wx:if="{{canConfirm}}" class="btn btn-primary" bindtap="act" data-action="confirm"><text class="btn-icon">确</text><text>确认完成</text></button>
+    <button wx:if="{{canReview}}" class="btn btn-ghost" bindtap="goReview"><text class="btn-icon">评</text><text>评价老师</text></button>
+    <button wx:if="{{canComplaint}}" class="btn btn-warn" bindtap="goComplaint"><text class="btn-icon">问</text><text>遇到问题</text></button>
+  </view>
+</view>

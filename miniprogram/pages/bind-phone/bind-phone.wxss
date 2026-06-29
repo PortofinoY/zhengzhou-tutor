@@ -1,0 +1,51 @@
+.title-icon {
+  width: 50rpx;
+  height: 50rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12rpx;
+  border-radius: 16rpx;
+  color: #FFFFFF;
+  background: #1E3A5F;
+  font-size: 26rpx;
+  vertical-align: middle;
+}
+
+.phone-card {
+  padding: 38rpx 30rpx;
+  text-align: center;
+}
+
+.phone-icon {
+  width: 88rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 22rpx;
+  border-radius: 28rpx;
+  background: #E8F7F4;
+  color: #2BB3A3;
+  font-size: 36rpx;
+  font-weight: 900;
+}
+
+.phone-title {
+  color: #1F2933;
+  font-size: 34rpx;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.phone-desc {
+  margin: 16rpx 0 30rpx;
+  color: #6B7280;
+  font-size: 25rpx;
+  line-height: 1.65;
+  text-align: left;
+}
+
+.wx-phone {
+  margin-top: 18rpx;
+}

@@ -1,0 +1,54 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/teachers/teachers",
+    "pages/teacher-detail/teacher-detail",
+    "pages/requirements/requirements",
+    "pages/requirement-detail/requirement-detail",
+    "pages/appointment/appointment",
+    "pages/orders/orders",
+    "pages/order-detail/order-detail",
+    "pages/review/review",
+    "pages/complaint/complaint",
+    "pages/profile/profile",
+    "pages/login/login",
+    "pages/bind-phone/bind-phone",
+    "pages/identity/identity",
+    "pages/parent-profile/parent-profile",
+    "pages/teacher-apply/teacher-apply",
+    "pages/teacher-dashboard/teacher-dashboard",
+    "pages/teacher-reviews/teacher-reviews",
+    "pages/teacher-rules/teacher-rules",
+    "pages/agreement/agreement",
+    "pages/privacy/privacy"
+  ],
+  "window": {
+    "navigationBarTitleText": "郑州大学生家教",
+    "navigationBarBackgroundColor": "#1E3A5F",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F7F8FA"
+  },
+  "tabBar": {
+    "color": "#6B7280",
+    "selectedColor": "#2BB3A3",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "icon/首页.png",
+        "selectedIconPath": "icon/首页.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "icon/我的.png",
+        "selectedIconPath": "icon/我的.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}

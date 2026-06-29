@@ -1,0 +1,27 @@
+<view class="page login-page">
+  <view class="brand-card">
+    <view class="brand-row">
+      <view class="brand-mark">郑</view>
+      <view class="brand-title">郑州大学生上门家教</view>
+    </view>
+    <view class="brand-desc">登录后可预约老师、申请入驻、查看订单、提交评价和投诉。</view>
+  </view>
+
+  <view class="login-card">
+    <view class="login-title">微信登录</view>
+    <view class="login-desc">普通用户使用微信登录进入小程序。首次登录后需要选择家长或老师身份，并完善对应资料。</view>
+
+    <label class="agreement">
+      <checkbox checked="{{agreed}}" bindtap="toggleAgree" />
+      <text>我已阅读并同意</text>
+      <text class="link" bindtap="goAgreement">《用户协议》</text>
+      <text>和</text>
+      <text class="link" bindtap="goPrivacy">《隐私政策》</text>
+    </label>
+
+    <button class="wechat-login" loading="{{loading}}" disabled="{{loading}}" bindtap="login">
+      <text class="wechat-icon">微</text>
+      <text>{{loading ? '登录中...' : '微信登录'}}</text>
+    </button>
+  </view>
+</view>

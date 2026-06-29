@@ -1,0 +1,8 @@
+.score-item {
+  margin-bottom: 24rpx;
+}
+
+.price {
+  color: #1E3A5F;
+  font-weight: 800;
+}

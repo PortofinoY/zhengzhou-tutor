@@ -1,0 +1,63 @@
+<view class="page parent-profile-page">
+  <view class="section">
+    <view class="title"><text class="title-icon">家</text>完善家长资料</view>
+    <view class="subtitle">用于匹配郑州本地大学生家教。这里不收集孩子真实姓名、学校和班级，详细地址仅在预约订单中填写。</view>
+  </view>
+
+  <view class="section">
+    <view class="phone-auth-card">
+      <view>
+        <view class="phone-auth-title">手机号授权</view>
+        <view class="phone-auth-desc">{{phoneBound ? phoneMasked : '可现在授权，也可在预约老师前授权'}}</view>
+      </view>
+      <button wx:if="{{!phoneBound && useMockPhoneAuth}}" class="mini-auth-btn" loading="{{phoneLoading}}" disabled="{{phoneLoading}}" bindtap="mockWechatPhone">授权</button>
+      <button wx:elif="{{!phoneBound}}" class="mini-auth-btn" loading="{{phoneLoading}}" disabled="{{phoneLoading}}" open-type="getPhoneNumber" bindgetphonenumber="bindWechatPhone">授权</button>
+      <text wx:else class="phone-bound-tag">已绑定</text>
+    </view>
+
+    <view class="form-item">
+      <text class="label">家长称呼</text>
+      <input class="input" maxlength="20" placeholder-class="input-placeholder" placeholder="如 王妈妈、刘先生" value="{{form.parentName}}" data-field="parentName" bindinput="onInput" />
+    </view>
+    <view class="form-item">
+      <text class="label">所在区域</text>
+      <picker range="{{areas}}" data-field="district" bindchange="onPicker">
+        <view class="picker-value">{{form.district || '请选择所在区域'}}</view>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="label">孩子年级</text>
+      <picker range="{{grades}}" data-field="childGrade" bindchange="onPicker">
+        <view class="picker-value">{{form.childGrade || '请选择孩子年级'}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="label">主要辅导科目</view>
+    <view class="choice-row">
+      <text wx:for="{{subjectOptions}}" wx:key="label" class="choice {{item.selected ? 'active' : ''}}" data-field="subjects" data-value="{{item.label}}" bindtap="toggleArray">{{item.label}}</text>
+    </view>
+    <view class="label spacing">期望上课时间（选填）</view>
+    <view class="choice-row">
+      <text wx:for="{{timeOptions}}" wx:key="label" class="choice {{item.selected ? 'active' : ''}}" data-field="availableTime" data-value="{{item.label}}" bindtap="toggleArray">{{item.label}}</text>
+    </view>
+    <view class="form-item remark-item">
+      <text class="label">孩子学习情况（选填）</text>
+      <textarea class="textarea" maxlength="300" placeholder-class="textarea-placeholder" placeholder="如基础较弱、需要作业辅导、想提升数学计算能力" value="{{form.childSituation}}" data-field="childSituation" bindinput="onInput"></textarea>
+    </view>
+    <view class="form-item remark-item">
+      <text class="label">对老师的要求（选填）</text>
+      <textarea class="textarea" maxlength="300" placeholder-class="textarea-placeholder" placeholder="如希望老师耐心、擅长初中数学、有家教经验" value="{{form.teacherRequirement}}" data-field="teacherRequirement" bindinput="onInput"></textarea>
+    </view>
+  </view>
+
+  <view class="privacy-note">
+    平台仅在预约订单中收集必要上门信息，家长资料页不采集孩子姓名、学校、班级和详细家庭地址。
+  </view>
+
+  <button class="btn btn-primary submit" disabled="{{loading}}" bindtap="submit">
+    <text class="btn-icon">✓</text>
+    <text>{{loading ? '保存中...' : '保存并进入首页'}}</text>
+  </button>
+</view>
