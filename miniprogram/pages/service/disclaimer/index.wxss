@@ -1,0 +1,13 @@
+@import "../classGuide/index.wxss";
+
+.note-box {
+  margin-top: 18rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 18rpx;
+  color: #1E3A5F;
+  background: #F0FAF8;
+  border: 1rpx solid #D7F2ED;
+  font-size: 25rpx;
+  font-weight: 800;
+  line-height: 1.5;
+}

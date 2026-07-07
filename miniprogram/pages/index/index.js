@@ -8,11 +8,12 @@ const STAGE_SHORTCUTS = [
   { label: '高中', grade: '高中', icon: '高', tone: 'high' }
 ];
 
-const RECOMMEND_TILES = [
-  { key: 'primary-math', title: '小学数学', desc: '基础同步辅导', grade: '小学', subject: '数学', tone: 'mint' },
-  { key: 'middle-english', title: '初中英语', desc: '语法阅读提升', grade: '初中', subject: '英语', tone: 'blue' },
-  { key: 'high-physics', title: '高中物理', desc: '难点拆解冲刺', grade: '高中', subject: '物理', tone: 'warm' },
-  { key: 'parent-needs', title: '家长需求', desc: '老师可查看需求', type: 'requirements', tone: 'green' }
+const MARKETING_BANNERS = [
+  { key: 'guide', title: '新用户找老师指南', desc: '3步找到合适大学生家教', button: '查看说明', type: 'page', url: '/pages/service/classGuide/index', tone: 'mint' },
+  { key: 'teachers', title: '郑州本地大学生家教', desc: '认证学生老师，上门1对1辅导', button: '去找老师', type: 'teacherList', tone: 'blue' },
+  { key: 'apply', title: '老师入驻招募中', desc: '空闲时间接单，展示你的教学能力', button: '申请成为老师', type: 'apply', tone: 'purple' },
+  { key: 'demand', title: '家长发布辅导需求', desc: '填写年级和科目，让老师主动联系你', button: '发布需求', type: 'demand', tone: 'warm' },
+  { key: 'unlock', title: '联系方式付费解锁', desc: '保护隐私，解锁后查看完整联系方式', button: '了解规则', type: 'page', url: '/pages/service/classGuide/index', tone: 'green' }
 ];
 
 const SUBJECT_SHORTCUTS = [
@@ -151,13 +152,13 @@ Page({
       title: '郑州大学生家教',
       subtitle: '认证大学生老师｜上门预约｜服务留痕',
       cityName: '郑州',
-      searchPlaceholder: '搜索科目、年级、学校'
+      searchPlaceholder: '搜索科目、年级'
     },
     hotSearchTags: HOT_SEARCH_TAGS,
     platformStats: PLATFORM_STATS,
     reviewCards: REVIEW_CARDS,
     stageShortcuts: STAGE_SHORTCUTS,
-    recommendTiles: RECOMMEND_TILES,
+    marketingBanners: MARKETING_BANNERS,
     subjectShortcuts: SUBJECT_SHORTCUTS,
     parentOrderShortcuts: PARENT_ORDER_SHORTCUTS,
     teacherOrderShortcuts: TEACHER_ORDER_SHORTCUTS,
@@ -215,7 +216,7 @@ Page({
             title: home.title || this.data.homeConfig.title,
             subtitle: home.subtitle || this.data.homeConfig.subtitle,
             cityName: home.cityName || this.data.homeConfig.cityName,
-            searchPlaceholder: '搜索科目、年级、学校'
+            searchPlaceholder: '搜索科目、年级'
           },
           guardItems: Array.isArray(home.guaranteeItems) && home.guaranteeItems.length ? home.guaranteeItems : this.data.guardItems,
           subjectShortcuts: buildSubjectShortcuts(dictionaries.subjects)
@@ -367,22 +368,40 @@ Page({
     this.openTeacherList({ keyword, subject, grade });
   },
 
-  openRecommendTile(event) {
-    const tile = this.data.recommendTiles.find((item) => item.key === event.currentTarget.dataset.key);
-    if (!tile) return;
-    if (tile.type === 'requirements') {
-      this.goRequirementList();
+  openMarketingBanner(event) {
+    const banner = this.data.marketingBanners.find((item) => item.key === event.currentTarget.dataset.key);
+    if (!banner) return;
+    if (banner.type === 'page' && banner.url) {
+      wx.navigateTo({ url: banner.url });
       return;
     }
-    this.openTeacherList({
-      grade: tile.grade,
-      subject: tile.subject,
-      keyword: tile.title
-    });
+    if (banner.type === 'teacherList') {
+      this.goTeacherList();
+      return;
+    }
+    if (banner.type === 'apply') {
+      this.goApply();
+      return;
+    }
+    if (banner.type === 'demand') {
+      this.goDemand();
+    }
   },
 
   goFindParents() {
     this.goRequirementList();
+  },
+
+  goBookingQuery() {
+    const currentRole = this.data.currentRole || 'parent';
+    if (!wx.getStorageSync('token')) {
+      wx.showToast({ title: '请先登录后查看预约记录', icon: 'none' });
+      setTimeout(() => {
+        wx.navigateTo({ url: `/pages/login/login?redirect=${encodeURIComponent('/pages/orders/orders')}` });
+      }, 450);
+      return;
+    }
+    this.goOrders(currentRole, 'all');
   },
 
   goLogin() {

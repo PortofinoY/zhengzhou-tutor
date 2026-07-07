@@ -1,0 +1,43 @@
+<view class="page service-page">
+  <view class="service-hero">
+    <view class="hero-label">风险提示</view>
+    <view class="hero-title">免责声明</view>
+    <view class="hero-desc">请在使用平台前了解服务边界、线下沟通风险和付费解锁说明。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">平台服务边界</view>
+    <view class="card-text">本平台是郑州本地大学生家教信息展示与预约撮合平台，主要提供老师信息展示、家长需求展示、联系方式解锁和预约记录服务。</view>
+    <view class="note-box">平台不是培训机构，不直接提供教学服务。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">教学效果说明</view>
+    <view class="card-text">平台不承诺任何具体学习效果，不承诺保分、保过、快速提分或升学结果。实际学习效果与学生基础、学习习惯、上课频率、老师能力和家庭配合等因素有关。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">线下服务风险</view>
+    <view class="card-text">家长和老师在线下沟通、见面或上课前，应自行确认对方信息，并注意人身和财产安全。建议首次见面选择安全、公开或家长在场的环境。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">信息真实性说明</view>
+    <view class="card-text">平台会对老师提交的基础资料进行审核，但无法保证所有信息在任何时间都绝对完整、准确或持续有效。用户应在沟通前再次确认关键信息。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">付费解锁说明</view>
+    <view class="card-text">联系方式属于虚拟信息服务。用户付费解锁前应确认自己的需求。解锁成功后，除联系方式无效、恶意虚假等特殊情况外，原则上不支持无理由退款。</view>
+  </view>
+
+  <view class="service-card tip-card">
+    <view class="card-title">投诉反馈</view>
+    <view class="card-text">如果用户发现虚假信息、联系方式无效、恶意骚扰或其他异常情况，可以通过平台投诉反馈入口提交问题，平台会根据情况进行处理。</view>
+  </view>
+
+  <view class="bottom-actions">
+    <button class="btn-secondary" bindtap="goHome">返回首页</button>
+    <button class="btn-primary" bindtap="contactService">联系客服</button>
+  </view>
+</view>

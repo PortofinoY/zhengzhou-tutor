@@ -1,6 +1,7 @@
 const { request, showError } = require('../../utils/request');
 const { backOrHome } = require('../../utils/auth');
 const { DEVELOPMENT_MOCK_WECHAT_API } = require('../../utils/config');
+const { extractWechatPhoneCode, mockPhoneCode } = require('../../utils/wechat-auth');
 
 Page({
   data: {
@@ -48,7 +49,7 @@ Page({
   },
 
   bindWechatPhone(event) {
-    const phoneCode = event.detail && (event.detail.code || event.detail.phoneCode);
+    const phoneCode = extractWechatPhoneCode(event);
     if (!phoneCode) {
       wx.showToast({ title: '需要授权手机号后才可以继续完成该操作', icon: 'none' });
       return;
@@ -57,7 +58,7 @@ Page({
   },
 
   mockWechatPhone() {
-    this.bindPhone(`mock_phone_code_${Date.now()}`);
+    this.bindPhone(mockPhoneCode());
   },
 
   skip() {

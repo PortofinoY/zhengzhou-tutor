@@ -4,6 +4,7 @@ const { subjects, areas, schools, suitableTags } = require('../../utils/constant
 
 Page({
   data: {
+    redirect: '/pages/index/index',
     genders: ['男', '女'],
     schools,
     subjects,
@@ -38,9 +39,12 @@ Page({
     }
   },
 
-  async onLoad() {
-    if (!requireLogin('/pages/teacher-apply/teacher-apply')) return;
-    if (!requirePhone('/pages/teacher-apply/teacher-apply')) return;
+  async onLoad(options) {
+    const redirect = decodeURIComponent((options && options.redirect) || '/pages/index/index');
+    const currentUrl = `/pages/teacher-apply/teacher-apply?redirect=${encodeURIComponent(redirect)}`;
+    this.setData({ redirect });
+    if (!requireLogin(currentUrl)) return;
+    if (!requirePhone(currentUrl)) return;
     this.loadMine();
   },
 
@@ -173,7 +177,7 @@ Page({
         title: '提交成功',
         content: '资料已提交，请等待平台审核。审核通过前不会展示在老师列表中。',
         showCancel: false,
-        success: () => redirectAfterAuth(data, '/pages/index/index')
+        success: () => redirectAfterAuth(data, this.data.redirect)
       });
     } catch (error) {
       showError(error);

@@ -8,8 +8,9 @@ Page({
   },
 
   onLoad(options) {
-    requireLogin('/pages/identity/identity');
-    this.setData({ redirect: decodeURIComponent(options.redirect || '/pages/index/index') });
+    const redirect = decodeURIComponent(options.redirect || '/pages/index/index');
+    this.setData({ redirect });
+    requireLogin(`/pages/identity/identity?redirect=${encodeURIComponent(redirect)}`);
   },
 
   async chooseRole(role) {

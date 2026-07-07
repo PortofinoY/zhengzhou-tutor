@@ -389,7 +389,7 @@ function publicConfigs() {
       title: '郑州大学生家教',
       subtitle: '认证老师｜上门1对1｜服务有保障',
       cityName: '郑州',
-      searchPlaceholder: '搜索科目、年级、学校',
+      searchPlaceholder: '搜索科目、年级',
       guaranteeItems: []
     },
     dictionaries: dictionaries()

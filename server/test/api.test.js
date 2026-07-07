@@ -40,6 +40,35 @@ async function api(pathname, options = {}) {
   return { status: response.status, json };
 }
 
+async function withIsolatedServer(options, fn) {
+  const isolatedDbPath = path.join(os.tmpdir(), `zz-tutor-mvp-isolated-${Date.now()}-${Math.random()}.json`);
+  const isolatedServer = createServer({ dbPath: isolatedDbPath, ...options });
+  await new Promise((resolve) => isolatedServer.listen(0, '127.0.0.1', resolve));
+  const address = isolatedServer.address();
+  const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+  async function isolatedApi(pathname, requestOptions = {}) {
+    const response = await fetch(`${isolatedBaseUrl}${pathname}`, {
+      ...requestOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(requestOptions.token ? { Authorization: `Bearer ${requestOptions.token}` } : {}),
+        ...(requestOptions.headers || {})
+      },
+      body: requestOptions.body ? JSON.stringify(requestOptions.body) : undefined
+    });
+    const json = await response.json();
+    return { status: response.status, json };
+  }
+
+  try {
+    await fn(isolatedApi);
+  } finally {
+    await new Promise((resolve) => isolatedServer.close(resolve));
+    if (fs.existsSync(isolatedDbPath)) fs.unlinkSync(isolatedDbPath);
+  }
+}
+
 async function login(code, phone) {
   const loginRes = await api('/api/auth/wechat-login', {
     method: 'POST',
@@ -210,6 +239,81 @@ test('development mock openid keeps returning user identity across changing wx c
   assert.equal(second.json.data.isNewUser, false);
   assert.equal(second.json.data.user.currentRole, 'parent');
   assert.equal(second.json.data.user.profileStatus, 'completed');
+});
+
+test('wechat login uses configured code2Session client openid', async () => {
+  const calls = [];
+  const wechatClient = {
+    async code2Session(code) {
+      calls.push({ type: 'code2Session', code });
+      return {
+        openid: 'real_wechat_openid_001',
+        sessionKey: 'real_session_key',
+        unionid: 'real_unionid_001'
+      };
+    }
+  };
+
+  await withIsolatedServer({ wechatClient }, async (request) => {
+    const first = await request('/api/auth/wechat-login', {
+      method: 'POST',
+      body: { code: 'real_code_first', nickname: '真实微信用户' }
+    });
+    assert.equal(first.status, 200);
+    assert.equal(first.json.data.isNewUser, true);
+    assert.equal(first.json.data.user.profileStatus, 'pending_role');
+
+    const second = await request('/api/auth/wechat-login', {
+      method: 'POST',
+      body: { code: 'real_code_second', nickname: '真实微信用户' }
+    });
+    assert.equal(second.status, 200);
+    assert.equal(second.json.data.isNewUser, false);
+    assert.equal(second.json.data.user.id, first.json.data.user.id);
+  });
+
+  assert.deepEqual(calls.map((call) => call.code), ['real_code_first', 'real_code_second']);
+});
+
+test('bind phone uses configured WeChat phone number client', async () => {
+  const calls = [];
+  const wechatClient = {
+    async code2Session() {
+      return {
+        openid: 'real_wechat_openid_phone',
+        sessionKey: 'real_session_key_phone'
+      };
+    },
+    async getPhoneNumber(phoneCode) {
+      calls.push({ type: 'getPhoneNumber', phoneCode });
+      return {
+        phoneNumber: '13900009991',
+        purePhoneNumber: '13900009991',
+        countryCode: '86'
+      };
+    }
+  };
+
+  await withIsolatedServer({ wechatClient }, async (request) => {
+    const loginRes = await request('/api/auth/wechat-login', {
+      method: 'POST',
+      body: { code: 'real_code_phone_user', nickname: '手机号用户' }
+    });
+    assert.equal(loginRes.status, 200);
+    const token = loginRes.json.data.token;
+
+    const bound = await request('/api/auth/bind-phone', {
+      method: 'POST',
+      token,
+      body: { phoneCode: 'real_phone_code_001' }
+    });
+    assert.equal(bound.status, 200);
+    assert.equal(bound.json.data.phone, '13900009991');
+    assert.equal(bound.json.data.user.phoneBound, true);
+    assert.equal(bound.json.data.user.phoneMasked, '139****9991');
+  });
+
+  assert.deepEqual(calls.map((call) => call.phoneCode), ['real_phone_code_001']);
 });
 
 test('wechat new user must choose role before profile submit', async () => {
@@ -532,4 +636,114 @@ test('admin-api manages teacher approval, privacy, configs and recommendation', 
   const logs = await api('/admin-api/operation-logs', { token: adminToken });
   assert.equal(logs.status, 200);
   assert.equal(logs.json.data.list.some((log) => log.action === 'admin_update_frontend_config'), true);
+});
+
+test('parent unlocks teacher contact once and can view unlocked contact details', async () => {
+  const parentToken = await login('mock_parent_001');
+
+  const before = await api('/api/teachers/1', { token: parentToken });
+  assert.equal(before.status, 200);
+  assert.equal(before.json.data.teacher.unlocked, false);
+  assert.equal(before.json.data.teacher.contactPhone, '');
+
+  const statusBefore = await api('/api/teachers/1/unlock-status', { token: parentToken });
+  assert.equal(statusBefore.status, 200);
+  assert.equal(statusBefore.json.data.unlocked, false);
+  assert.equal(statusBefore.json.data.canUnlock, true);
+  assert.equal(statusBefore.json.data.amount, 9.9);
+
+  const createdOrder = await api('/api/unlock/teacher/1/create-order', {
+    method: 'POST',
+    token: parentToken,
+    body: {}
+  });
+  assert.equal(createdOrder.status, 200);
+  assert.equal(createdOrder.json.data.amount, 9.9);
+  assert.equal(createdOrder.json.data.paymentOrder.payStatus, 'pending');
+
+  const paid = await api('/api/unlock/teacher/1/mock-pay', {
+    method: 'POST',
+    token: parentToken,
+    body: {}
+  });
+  assert.equal(paid.status, 200);
+  assert.equal(paid.json.data.record.targetType, 'teacher_contact');
+  assert.equal(paid.json.data.record.unlockStatus, 'unlocked');
+  assert.equal(paid.json.data.teacher.contactPhone, '13800138002');
+
+  const after = await api('/api/teachers/1', { token: parentToken });
+  assert.equal(after.status, 200);
+  assert.equal(after.json.data.teacher.unlocked, true);
+  assert.equal(after.json.data.teacher.contactPhone, '13800138002');
+
+  const repeated = await api('/api/unlock/teacher/1/create-order', {
+    method: 'POST',
+    token: parentToken,
+    body: {}
+  });
+  assert.equal(repeated.status, 200);
+  assert.equal(repeated.json.data.alreadyUnlocked, true);
+
+  const records = await api('/api/unlock-records', { token: parentToken });
+  assert.equal(records.status, 200);
+  assert.equal(records.json.data.list.filter((item) => item.targetType === 'teacher_contact' && item.targetId === 1).length, 1);
+
+  const adminLogin = await api('/admin-api/auth/login', {
+    method: 'POST',
+    body: { username: 'admin', password: 'Admin@123456' }
+  });
+  const adminRecords = await api('/admin-api/unlock-records?targetType=teacher_contact', { token: adminLogin.json.data.token });
+  assert.equal(adminRecords.status, 200);
+  assert.equal(adminRecords.json.data.list.some((item) => item.buyerPhoneMasked && item.targetType === 'teacher_contact'), true);
+});
+
+test('approved teacher unlocks parent requirement and records contact log', async () => {
+  const teacherToken = await login('mock_teacher_001');
+
+  const before = await api('/api/requirements/1', { token: teacherToken });
+  assert.equal(before.status, 200);
+  assert.equal(before.json.data.requirement.unlocked, false);
+  assert.equal(before.json.data.requirement.contactPhone, '');
+
+  const deniedParent = await api('/api/unlock/requirement/1/create-order', {
+    method: 'POST',
+    token: await login('mock_parent_001'),
+    body: {}
+  });
+  assert.equal(deniedParent.status, 403);
+
+  const createdOrder = await api('/api/unlock/requirement/1/create-order', {
+    method: 'POST',
+    token: teacherToken,
+    body: {}
+  });
+  assert.equal(createdOrder.status, 200);
+  assert.equal(createdOrder.json.data.amount, 49.9);
+
+  const paid = await api('/api/unlock/requirement/1/mock-pay', {
+    method: 'POST',
+    token: teacherToken,
+    body: {}
+  });
+  assert.equal(paid.status, 200);
+  assert.equal(paid.json.data.record.targetType, 'parent_contact');
+  assert.equal(paid.json.data.requirement.contactPhone, '13800138001');
+
+  const contactLog = await api('/api/contact-logs', {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      targetType: 'parent_requirement',
+      targetId: 1,
+      contactStatus: 'contacted',
+      note: '已电话沟通，准备约课'
+    }
+  });
+  assert.equal(contactLog.status, 200);
+  assert.equal(contactLog.json.data.log.targetType, 'parent_requirement');
+  assert.equal(contactLog.json.data.log.contactStatus, 'contacted');
+
+  const records = await api('/api/unlock-records', { token: teacherToken });
+  assert.equal(records.status, 200);
+  assert.equal(records.json.data.list.some((item) => item.targetType === 'parent_contact' && item.targetId === 1), true);
 });

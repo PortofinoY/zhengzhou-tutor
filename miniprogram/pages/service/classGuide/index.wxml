@@ -1,0 +1,69 @@
+<view class="page service-page">
+  <view class="service-hero">
+    <view class="hero-label">服务说明</view>
+    <view class="hero-title">上课说明</view>
+    <view class="hero-desc">了解上课流程、注意事项、接单协议、免责声明和投诉反馈规则。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">上课流程</view>
+    <view class="card-text">家长可以根据孩子年级、科目、区域和预算选择合适老师。提交预约后，老师确认接单，双方再根据约定时间和地点沟通上课。</view>
+    <view class="flow-row">
+      <view class="flow-item">选择老师</view>
+      <view class="flow-item">提交预约</view>
+      <view class="flow-item">老师确认</view>
+      <view class="flow-item">双方沟通</view>
+      <view class="flow-item">按约上课</view>
+      <view class="flow-item">课后评价</view>
+    </view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">家长注意事项</view>
+    <view class="list-item">请提前确认孩子年级、辅导科目和上课时间。</view>
+    <view class="list-item">请如实填写学习情况和辅导需求。</view>
+    <view class="list-item">请保持联系方式畅通。</view>
+    <view class="list-item">线下见面建议选择安全、公开或家长在场的环境。</view>
+    <view class="list-item">如遇问题，可以通过投诉反馈联系平台。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">老师注意事项</view>
+    <view class="list-item">接单前请确认自己具备对应科目的辅导能力。</view>
+    <view class="list-item">请确认上课时间、区域和课时费是否合适。</view>
+    <view class="list-item">不得夸大教学能力。</view>
+    <view class="list-item">不得无故爽约。</view>
+    <view class="list-item">如无法上课，请提前与家长沟通。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">接单协议</view>
+    <view class="card-text">老师在接单前，应确保个人资料真实有效，已通过平台审核，并具备对应科目的基础辅导能力。</view>
+    <view class="card-text">接单后应按照约定时间与家长沟通，不得临时恶意加价，不得泄露家长和学生隐私，不得诱导用户进行不安全交易。</view>
+    <view class="card-text">如老师存在虚假资料、恶意爽约、骚扰用户、泄露隐私等行为，平台有权限制展示、暂停接单或封禁账号。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">免责声明</view>
+    <view class="card-text">本平台是郑州本地大学生家教信息展示与预约撮合平台，主要提供老师信息展示、家长需求展示、联系方式解锁和预约记录服务。</view>
+    <view class="note-box">平台不是培训机构，不直接提供教学服务。</view>
+    <view class="card-text">平台不承诺任何具体学习效果，不承诺保分、保过、快速提分或升学结果。</view>
+    <view class="card-text">实际学习效果与学生基础、学习习惯、上课频率、老师能力和家庭配合等因素有关。</view>
+    <view class="card-text">用户在线下沟通、见面或上课前，应自行确认对方信息，并注意人身和财产安全。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">付费解锁说明</view>
+    <view class="card-text">联系方式属于虚拟信息服务。用户付费解锁前应确认自己的需求。解锁成功后，除联系方式无效、恶意虚假等特殊情况外，原则上不支持无理由退款。</view>
+  </view>
+
+  <view class="service-card tip-card">
+    <view class="card-title">投诉反馈</view>
+    <view class="card-text">如发现虚假信息、联系方式无效、恶意骚扰、爽约或其他异常情况，可以通过平台投诉反馈入口提交问题，平台会根据情况进行处理。</view>
+  </view>
+
+  <view class="bottom-actions">
+    <button class="btn-secondary" bindtap="goHome">返回首页</button>
+    <button class="btn-primary" bindtap="contactService">联系客服</button>
+  </view>
+</view>

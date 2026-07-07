@@ -26,9 +26,12 @@ const {
   validateParentProfilePayload,
   validateOrderPayload,
   validateReviewPayload,
-  validateComplaintPayload
+  validateComplaintPayload,
+  validateRequirementPayload,
+  validateContactLogPayload
 } = require('./validators');
 const { now } = require('./store');
+const { createWechatClient } = require('./wechat');
 
 const FINAL_ORDER_STATUS = [
   ORDER_STATUS.COMPLETED,
@@ -114,8 +117,9 @@ function mockPhoneFromCode(code, userId) {
 }
 
 class TutorApi {
-  constructor(store) {
+  constructor(store, options = {}) {
     this.store = store;
+    this.wechatClient = options.wechatClient || createWechatClient();
   }
 
   async handle(req, res) {
@@ -157,6 +161,8 @@ class TutorApi {
     if (segments[1] === 'teachers') return this.teacherRoutes(req, method, segments.slice(2), searchParams, body);
     if (segments[1] === 'requirements') return this.requirementRoutes(req, method, segments.slice(2), searchParams, body);
     if (segments[1] === 'unlock') return this.unlockRoutes(req, method, segments.slice(2), body);
+    if (segments[1] === 'unlock-records') return this.unlockRecordRoutes(req, method, segments.slice(2), searchParams, body);
+    if (segments[1] === 'contact-logs') return this.contactLogRoutes(req, method, segments.slice(2), searchParams, body);
     if (segments[1] === 'orders') return this.orderRoutes(req, method, segments.slice(2), searchParams, body);
     if (segments[1] === 'reviews') return this.reviewRoutes(req, method, segments.slice(2), body);
     if (segments[1] === 'complaints') return this.complaintRoutes(req, method, segments.slice(2), body);
@@ -188,7 +194,7 @@ class TutorApi {
         title: config.home_title || '郑州大学生家教',
         subtitle: config.home_subtitle || '认证大学生老师｜上门预约｜服务留痕',
         cityName: config.city_name || '郑州',
-        searchPlaceholder: config.search_placeholder || '搜索科目、年级、学校、老师',
+        searchPlaceholder: config.search_placeholder || '搜索科目、年级',
         guaranteeItems: Array.isArray(config.guarantee_items) ? config.guarantee_items : []
       },
       dictionaries: {
@@ -278,13 +284,15 @@ class TutorApi {
 
     const teacherId = Number(parts[0]);
     if (teacherId && method === 'GET' && parts.length === 1) return this.getTeacherDetail(req, teacherId);
+    if (teacherId && method === 'GET' && parts[1] === 'unlock-status') return this.teacherUnlockStatus(req, teacherId);
     if (teacherId && method === 'GET' && parts[1] === 'reviews') return this.teacherReviews(teacherId);
 
     throw createError(404, '老师接口不存在');
   }
 
-  requirementRoutes(req, method, parts, searchParams) {
+  requirementRoutes(req, method, parts, searchParams, body) {
     if (method === 'GET' && parts.length === 0) return this.listRequirements(req, searchParams);
+    if (method === 'POST' && parts.length === 0) return this.createRequirement(req, body);
 
     const requirementId = Number(parts[0]);
     if (!requirementId) throw createError(404, '家长需求接口不存在');
@@ -295,6 +303,12 @@ class TutorApi {
   }
 
   unlockRoutes(req, method, parts) {
+    if (parts[0] === 'teacher') {
+      const teacherId = Number(parts[1]);
+      if (!teacherId) throw createError(404, '解锁接口不存在');
+      if (method === 'POST' && parts[2] === 'create-order') return this.createTeacherUnlockOrder(req, teacherId);
+      if (method === 'POST' && parts[2] === 'mock-pay') return this.mockPayTeacherUnlock(req, teacherId);
+    }
     if (parts[0] === 'requirement') {
       const requirementId = Number(parts[1]);
       if (!requirementId) throw createError(404, '解锁接口不存在');
@@ -302,6 +316,17 @@ class TutorApi {
       if (method === 'POST' && parts[2] === 'mock-pay') return this.mockPayRequirementUnlock(req, requirementId);
     }
     throw createError(404, '解锁接口不存在');
+  }
+
+  unlockRecordRoutes(req, method) {
+    if (method === 'GET') return this.listMyUnlockRecords(req);
+    throw createError(404, '解锁记录接口不存在');
+  }
+
+  contactLogRoutes(req, method, parts, searchParams, body) {
+    if (method === 'GET') return this.listMyContactLogs(req, searchParams);
+    if (method === 'POST') return this.createContactLog(req, body);
+    throw createError(404, '联系记录接口不存在');
   }
 
   orderRoutes(req, method, parts, searchParams, body) {
@@ -459,6 +484,7 @@ class TutorApi {
     }
 
     if (parts[0] === 'operation-logs' && method === 'GET') return this.adminOperationLogs(searchParams);
+    if (parts[0] === 'unlock-records' && method === 'GET') return this.adminUnlockRecords(searchParams);
 
     throw createError(404, '后台接口不存在');
   }
@@ -577,7 +603,10 @@ class TutorApi {
   teacherView(teacher, viewer = { kind: 'guest' }) {
     const owner = this.teacherOwner(teacher);
     const subjects = this.teacherSubjects(teacher.id);
+    const viewerUser = viewer && viewer.user ? viewer.user : null;
     const showPrivate = viewer.kind === 'admin' || viewer.kind === 'owner';
+    const unlocked = this.teacherUnlocked(viewerUser, teacher);
+    const showContact = showPrivate || unlocked;
     const showRealName = showPrivate || Boolean(viewer.user);
     const visibleReviews = this.store.table('reviews').filter((review) => review.teacherId === teacher.id && review.isVisible);
     const certificationTags = this.teacherCertificationTags(teacher);
@@ -612,6 +641,12 @@ class TutorApi {
       orderStatusText: textOf(teacher.orderStatus),
       rating: teacher.rating,
       completedOrderCount: teacher.completedOrderCount,
+      unlocked,
+      unlockAmount: 9.9,
+      contactLockedText: '为保护双方隐私，解锁后可查看老师联系方式和完整资料。',
+      contactPhone: showContact && owner ? owner.phone : '',
+      contactPhoneMasked: owner && owner.phone ? maskPhone(owner.phone) : '',
+      contactWechat: showContact ? teacher.contactWechat || '' : '',
       rejectReason: showPrivate ? teacher.rejectReason : undefined,
       bannedReason: viewer.kind === 'admin' ? teacher.bannedReason : undefined,
       phone: showPrivate && owner ? owner.phone : undefined,
@@ -764,11 +799,47 @@ class TutorApi {
     };
   }
 
-  wechatLogin(body) {
-    assertRequired(body.code, '缺少微信登录 code');
-    const { user, isNewUser } = this.store.createOrUpdateWechatUser({
+  shouldUseWechatClient(code, devOpenid) {
+    const loginCode = cleanText(code);
+    if (devOpenid) return false;
+    if (loginCode.startsWith('mock_')) return false;
+    if (!this.wechatClient || typeof this.wechatClient.code2Session !== 'function') return false;
+    if (typeof this.wechatClient.isConfigured === 'function') return this.wechatClient.isConfigured();
+    return true;
+  }
+
+  shouldUseWechatPhoneClient(phoneCode) {
+    if (!phoneCode) return false;
+    if (String(phoneCode).startsWith('mock_')) return false;
+    if (!this.wechatClient || typeof this.wechatClient.getPhoneNumber !== 'function') return false;
+    if (typeof this.wechatClient.isConfigured === 'function') return this.wechatClient.isConfigured();
+    return true;
+  }
+
+  async resolveWechatSession(body) {
+    if (!this.shouldUseWechatClient(body.code, body.devOpenid)) {
+      return {
+        code: body.code,
+        devOpenid: body.devOpenid,
+        openid: ''
+      };
+    }
+
+    const session = await this.wechatClient.code2Session(body.code);
+    return {
       code: body.code,
-      devOpenid: body.devOpenid,
+      devOpenid: '',
+      openid: session.openid,
+      sessionKey: session.sessionKey,
+      unionid: session.unionid
+    };
+  }
+
+  async wechatLogin(body) {
+    assertRequired(body.code, '缺少微信登录 code');
+    const session = await this.resolveWechatSession(body);
+    const { user, isNewUser } = this.store.createOrUpdateWechatUser({
+      ...session,
       nickname: body.nickname,
       avatar: body.avatar
     });
@@ -999,13 +1070,17 @@ class TutorApi {
     return { expiresInSeconds: 300, devCode: '123456' };
   }
 
-  bindPhone(req, body) {
+  async bindPhone(req, body) {
     const user = this.requireUser(req);
     const phoneCode = body.phoneCode || body.wechatPhoneCode;
     let phone = cleanText(body.phone);
     if (!phone && phoneCode) {
-      // 本地 MVP 没有微信服务端密钥，先用授权 code 生成稳定演示手机号；生产环境应在这里调用微信接口换取手机号。
-      phone = mockPhoneFromCode(phoneCode, user.id);
+      if (this.shouldUseWechatPhoneClient(phoneCode)) {
+        const phoneInfo = await this.wechatClient.getPhoneNumber(phoneCode);
+        phone = cleanText(phoneInfo.phoneNumber || phoneInfo.purePhoneNumber);
+      } else {
+        phone = mockPhoneFromCode(phoneCode, user.id);
+      }
     }
     assertChinaPhone(phone);
 
@@ -1142,6 +1217,66 @@ class TutorApi {
     return `${text.slice(0, max)}...`;
   }
 
+  teacherUnlocked(user, teacher) {
+    if (!user || !teacher) return false;
+    return this.store.table('unlockRecords').some((record) => (
+      Number(record.buyerUserId) === Number(user.id) &&
+      record.buyerRole === ROLES.PARENT &&
+      record.targetType === 'teacher_contact' &&
+      Number(record.targetId) === Number(teacher.id) &&
+      record.payStatus === 'paid' &&
+      record.unlockStatus === 'unlocked'
+    ));
+  }
+
+  createPaymentOrder({ buyerUserId, buyerRole, targetType, targetId, amount }) {
+    const timestamp = now();
+    const paymentOrder = {
+      id: this.store.nextId('paymentOrders'),
+      orderNo: `PAY${Date.now()}${String(buyerUserId).padStart(4, '0')}`,
+      buyerUserId,
+      buyerRole,
+      targetType,
+      targetId,
+      amount,
+      payStatus: 'pending',
+      payMode: 'mock',
+      createdAt: timestamp,
+      paidAt: '',
+      updatedAt: timestamp
+    };
+    this.store.table('paymentOrders').push(paymentOrder);
+    this.store.save();
+    return paymentOrder;
+  }
+
+  markPaymentOrderPaid({ buyerUserId, targetType, targetId, amount }) {
+    const timestamp = now();
+    let paymentOrder = this.store
+      .table('paymentOrders')
+      .slice()
+      .reverse()
+      .find((item) => (
+        Number(item.buyerUserId) === Number(buyerUserId) &&
+        item.targetType === targetType &&
+        Number(item.targetId) === Number(targetId) &&
+        item.payStatus === 'pending'
+      ));
+    if (!paymentOrder) {
+      paymentOrder = this.createPaymentOrder({
+        buyerUserId,
+        buyerRole: targetType === 'teacher_contact' ? ROLES.PARENT : ROLES.TEACHER,
+        targetType,
+        targetId,
+        amount
+      });
+    }
+    paymentOrder.payStatus = 'paid';
+    paymentOrder.paidAt = paymentOrder.paidAt || timestamp;
+    paymentOrder.updatedAt = timestamp;
+    return paymentOrder;
+  }
+
   requirementView(requirement, viewer = null) {
     const unlocked = this.requirementUnlocked(viewer, requirement);
     const parent = this.store.findById('users', requirement.parentUserId);
@@ -1212,6 +1347,104 @@ class TutorApi {
     return teacher;
   }
 
+  ensureParentUser(user) {
+    if (!user || user.currentRole !== ROLES.PARENT) throw createError(403, '请切换为家长身份后操作');
+    this.ensureNormalUser(user);
+    this.ensureProfileCompleted(user);
+    return user;
+  }
+
+  teacherUnlockStatus(req, teacherId) {
+    const user = this.requireUser(req);
+    const teacher = this.store.findById('teachers', teacherId);
+    if (!isTeacherVisible(teacher)) throw createError(404, '老师不存在或暂不可预约');
+    return {
+      unlocked: this.teacherUnlocked(user, teacher),
+      canUnlock: Boolean(user.currentRole === ROLES.PARENT && teacher.userId !== user.id),
+      amount: 9.9,
+      teacher: this.teacherView(teacher, { kind: 'user', user })
+    };
+  }
+
+  createTeacherUnlockOrder(req, teacherId) {
+    const user = this.requireUser(req);
+    this.ensureParentUser(user);
+    const teacher = this.store.findById('teachers', teacherId);
+    if (!isTeacherVisible(teacher)) throw createError(404, '老师不存在或暂不可预约');
+    if (teacher.userId === user.id) throw createError(400, '不能解锁自己的联系方式');
+    if (this.teacherUnlocked(user, teacher)) {
+      return {
+        alreadyUnlocked: true,
+        amount: 9.9,
+        teacher: this.teacherView(teacher, { kind: 'user', user })
+      };
+    }
+    const paymentOrder = this.createPaymentOrder({
+      buyerUserId: user.id,
+      buyerRole: ROLES.PARENT,
+      targetType: 'teacher_contact',
+      targetId: teacher.id,
+      amount: 9.9
+    });
+    return {
+      orderNo: paymentOrder.orderNo,
+      paymentOrder,
+      amount: 9.9,
+      payMode: 'mock',
+      message: '开发环境 mock 支付订单，生产环境需接入微信支付。'
+    };
+  }
+
+  mockPayTeacherUnlock(req, teacherId) {
+    const user = this.requireUser(req);
+    this.ensureParentUser(user);
+    const teacher = this.store.findById('teachers', teacherId);
+    if (!isTeacherVisible(teacher)) throw createError(404, '老师不存在或暂不可预约');
+    if (teacher.userId === user.id) throw createError(400, '不能解锁自己的联系方式');
+    const paymentOrder = this.markPaymentOrderPaid({
+      buyerUserId: user.id,
+      targetType: 'teacher_contact',
+      targetId: teacher.id,
+      amount: 9.9
+    });
+    let record = this.store.table('unlockRecords').find((item) => (
+      Number(item.buyerUserId) === Number(user.id) &&
+      item.buyerRole === ROLES.PARENT &&
+      item.targetType === 'teacher_contact' &&
+      Number(item.targetId) === Number(teacher.id)
+    ));
+    const timestamp = now();
+    if (!record) {
+      record = {
+        id: this.store.nextId('unlockRecords'),
+        buyerUserId: user.id,
+        buyerRole: ROLES.PARENT,
+        targetType: 'teacher_contact',
+        targetId: teacher.id,
+        amount: 9.9,
+        payStatus: 'paid',
+        payOrderNo: paymentOrder.orderNo,
+        unlockStatus: 'unlocked',
+        createdAt: timestamp,
+        paidAt: timestamp,
+        expiredAt: ''
+      };
+      this.store.table('unlockRecords').push(record);
+    } else {
+      record.payStatus = 'paid';
+      record.unlockStatus = 'unlocked';
+      record.payOrderNo = record.payOrderNo || paymentOrder.orderNo;
+      record.paidAt = record.paidAt || timestamp;
+    }
+    this.store.save();
+    return {
+      record,
+      paymentOrder,
+      unlocked: true,
+      teacher: this.teacherView(teacher, { kind: 'user', user })
+    };
+  }
+
   requirementUnlockStatus(req, requirementId) {
     const user = this.requireUser(req);
     const requirement = this.store.findById('parentRequirements', requirementId);
@@ -1237,8 +1470,16 @@ class TutorApi {
         requirement: this.requirementView(requirement, user)
       };
     }
+    const paymentOrder = this.createPaymentOrder({
+      buyerUserId: user.id,
+      buyerRole: ROLES.TEACHER,
+      targetType: 'parent_contact',
+      targetId: requirement.id,
+      amount: 49.9
+    });
     return {
-      orderNo: `REQ${Date.now()}${String(user.id).padStart(4, '0')}`,
+      orderNo: paymentOrder.orderNo,
+      paymentOrder,
       amount: 49.9,
       payMode: 'mock',
       message: '开发环境 mock 支付订单，生产环境需接入微信支付。'
@@ -1250,6 +1491,12 @@ class TutorApi {
     this.ensureApprovedTeacherUser(user);
     const requirement = this.store.findById('parentRequirements', requirementId);
     if (!this.requirementVisible(requirement)) throw createError(404, '家长需求不存在或暂不可查看');
+    const paymentOrder = this.markPaymentOrderPaid({
+      buyerUserId: user.id,
+      targetType: 'parent_contact',
+      targetId: requirement.id,
+      amount: 49.9
+    });
     let record = this.store.table('unlockRecords').find((item) => (
       Number(item.buyerUserId) === Number(user.id) &&
       item.buyerRole === ROLES.TEACHER &&
@@ -1266,7 +1513,7 @@ class TutorApi {
         targetId: requirement.id,
         amount: 49.9,
         payStatus: 'paid',
-        payOrderNo: `MOCKREQ${String(Date.now()).slice(-10)}`,
+        payOrderNo: paymentOrder.orderNo,
         unlockStatus: 'unlocked',
         createdAt: timestamp,
         paidAt: timestamp,
@@ -1276,14 +1523,129 @@ class TutorApi {
     } else {
       record.payStatus = 'paid';
       record.unlockStatus = 'unlocked';
+      record.payOrderNo = record.payOrderNo || paymentOrder.orderNo;
       record.paidAt = record.paidAt || timestamp;
     }
     this.store.save();
     return {
       record,
+      paymentOrder,
       unlocked: true,
       requirement: this.requirementView(requirement, user)
     };
+  }
+
+  createRequirement(req, body) {
+    const user = this.requireUser(req);
+    this.ensureParentUser(user);
+    validateRequirementPayload(body);
+    const profile = this.parentProfileByUserId(user.id);
+    const timestamp = now();
+    const requirement = {
+      id: this.store.nextId('parentRequirements'),
+      parentUserId: user.id,
+      parentDisplayName: body.parentDisplayName || body.parentName || (profile && profile.parentName) || user.nickname || '家长用户',
+      district: body.district,
+      childGrade: body.childGrade,
+      subject: body.subject,
+      expectedTime: body.expectedTime,
+      budgetPrice: Number(body.budgetPrice),
+      studySituation: cleanText(body.studySituation),
+      teacherRequirement: cleanText(body.teacherRequirement),
+      contactPhone: body.contactPhone || user.phone || '',
+      contactWechat: cleanText(body.contactWechat),
+      contactVisibleConsent: body.contactVisibleConsent !== false,
+      status: 'active',
+      isRecommended: Boolean(body.isRecommended),
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+    this.store.table('parentRequirements').push(requirement);
+    this.store.save();
+    return { requirement: this.requirementView(requirement, user) };
+  }
+
+  unlockRecordView(record) {
+    let targetName = '';
+    let targetSummary = '';
+    if (record.targetType === 'teacher_contact') {
+      const teacher = this.store.findById('teachers', record.targetId);
+      const owner = teacher ? this.teacherOwner(teacher) : null;
+      targetName = teacher ? (owner && owner.nickname ? owner.nickname : `${teacher.realName.slice(0, 1)}老师`) : '老师信息';
+      targetSummary = teacher ? `${teacher.school}｜${teacher.major}` : '';
+    }
+    if (record.targetType === 'parent_contact') {
+      const requirement = this.store.findById('parentRequirements', record.targetId);
+      targetName = requirement ? requirement.parentDisplayName : '家长需求';
+      targetSummary = requirement ? `${requirement.childGrade}｜${requirement.subject}｜${requirement.district}` : '';
+    }
+    return {
+      id: record.id,
+      buyerUserId: record.buyerUserId,
+      buyerRole: record.buyerRole,
+      targetType: record.targetType,
+      targetId: record.targetId,
+      targetName,
+      targetSummary,
+      amount: record.amount,
+      payStatus: record.payStatus,
+      payOrderNo: record.payOrderNo,
+      unlockStatus: record.unlockStatus,
+      createdAt: record.createdAt,
+      paidAt: record.paidAt,
+      expiredAt: record.expiredAt
+    };
+  }
+
+  listMyUnlockRecords(req) {
+    const user = this.requireUser(req);
+    const list = this.store
+      .table('unlockRecords')
+      .filter((record) => Number(record.buyerUserId) === Number(user.id))
+      .slice()
+      .sort((a, b) => Date.parse(b.paidAt || b.createdAt || 0) - Date.parse(a.paidAt || a.createdAt || 0))
+      .map((record) => this.unlockRecordView(record));
+    return { list, total: list.length };
+  }
+
+  createContactLog(req, body) {
+    const user = this.requireUser(req);
+    validateContactLogPayload(body);
+    const targetId = Number(body.targetId);
+    if (body.targetType === 'teacher') {
+      const teacher = this.store.findById('teachers', targetId);
+      if (!isTeacherVisible(teacher)) throw createError(404, '老师不存在或暂不可联系');
+      if (!this.teacherUnlocked(user, teacher)) throw createError(403, '请先解锁老师联系方式');
+    }
+    if (body.targetType === 'parent_requirement') {
+      const requirement = this.store.findById('parentRequirements', targetId);
+      if (!this.requirementVisible(requirement)) throw createError(404, '家长需求不存在或暂不可联系');
+      if (!this.requirementUnlocked(user, requirement)) throw createError(403, '请先解锁家长联系方式');
+    }
+    const timestamp = now();
+    const log = {
+      id: this.store.nextId('contactLogs'),
+      userId: user.id,
+      role: user.currentRole,
+      targetType: body.targetType,
+      targetId,
+      contactStatus: body.contactStatus || body.status || 'contacted',
+      note: cleanText(body.note),
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+    this.store.table('contactLogs').push(log);
+    this.store.save();
+    return { log };
+  }
+
+  listMyContactLogs(req, searchParams) {
+    const user = this.requireUser(req);
+    const targetType = pickQuery(searchParams, 'targetType');
+    let list = this.store.table('contactLogs').filter((log) => Number(log.userId) === Number(user.id));
+    if (targetType) list = list.filter((log) => log.targetType === targetType);
+    list = list.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    return { list, total: list.length };
   }
 
   applyTeacher(req, body, isEdit = false) {
@@ -2238,6 +2600,27 @@ class TutorApi {
           createdAt: log.createdAt
         };
       })
+    };
+  }
+
+  adminUnlockRecords(searchParams) {
+    const targetType = pickQuery(searchParams, 'targetType');
+    const buyerRole = pickQuery(searchParams, 'buyerRole');
+    let records = this.store.table('unlockRecords');
+    if (targetType) records = records.filter((record) => record.targetType === targetType);
+    if (buyerRole) records = records.filter((record) => record.buyerRole === buyerRole);
+    records = records.slice().sort((a, b) => Date.parse(b.paidAt || b.createdAt || 0) - Date.parse(a.paidAt || a.createdAt || 0));
+    return {
+      list: records.map((record) => {
+        const buyer = this.store.findById('users', record.buyerUserId);
+        return {
+          ...this.unlockRecordView(record),
+          buyerNickname: buyer ? buyer.nickname : '',
+          buyerPhoneMasked: buyer && buyer.phone ? maskPhone(buyer.phone) : '',
+          buyerPhone: buyer && buyer.phone ? maskPhone(buyer.phone) : ''
+        };
+      }),
+      total: records.length
     };
   }
 

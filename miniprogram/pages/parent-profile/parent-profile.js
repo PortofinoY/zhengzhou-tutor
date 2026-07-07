@@ -2,6 +2,7 @@ const { request, showError } = require('../../utils/request');
 const { requireLogin, redirectAfterAuth } = require('../../utils/auth');
 const { subjects, grades, areas } = require('../../utils/constants');
 const { DEVELOPMENT_MOCK_WECHAT_API } = require('../../utils/config');
+const { extractWechatPhoneCode, mockPhoneCode } = require('../../utils/wechat-auth');
 
 const TIMES = ['周一晚上', '周二晚上', '周三晚上', '周四晚上', '周五晚上', '周六上午', '周六下午', '周日下午', '周日晚上'];
 
@@ -30,8 +31,9 @@ Page({
   },
 
   onLoad(options) {
-    if (!requireLogin('/pages/parent-profile/parent-profile')) return;
-    this.setData({ redirect: decodeURIComponent(options.redirect || '/pages/index/index') });
+    const redirect = decodeURIComponent(options.redirect || '/pages/index/index');
+    this.setData({ redirect });
+    if (!requireLogin(`/pages/parent-profile/parent-profile?redirect=${encodeURIComponent(redirect)}`)) return;
     this.loadProfile();
   },
 
@@ -120,7 +122,7 @@ Page({
   },
 
   bindWechatPhone(event) {
-    const phoneCode = event.detail && (event.detail.code || event.detail.phoneCode);
+    const phoneCode = extractWechatPhoneCode(event);
     if (!phoneCode) {
       wx.showToast({ title: '需要授权手机号后才可以继续完成该操作', icon: 'none' });
       return;
@@ -129,7 +131,7 @@ Page({
   },
 
   mockWechatPhone() {
-    this.bindPhone(`mock_phone_code_${Date.now()}`);
+    this.bindPhone(mockPhoneCode());
   },
 
   async submit() {

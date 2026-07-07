@@ -1,0 +1,42 @@
+<view class="page service-page">
+  <view class="service-hero">
+    <view class="hero-label">老师必读</view>
+    <view class="hero-title">接单协议</view>
+    <view class="hero-desc">老师接单前请先了解资料要求、行为规范、费用说明和违规处理规则。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">老师接单要求</view>
+    <view class="card-text">老师在接单前，应确保个人资料真实有效，已通过平台审核，并具备对应科目的基础辅导能力。</view>
+    <view class="list-item">老师资料必须真实。</view>
+    <view class="list-item">授课科目应与本人能力匹配。</view>
+    <view class="list-item">接单前应确认时间和地点。</view>
+    <view class="list-item">不得冒用他人身份接单。</view>
+    <view class="list-item">不得发布虚假教学经历。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">接单行为规范</view>
+    <view class="card-text">老师接受预约后，应按约定时间与家长沟通，保持基本礼貌和服务意识。</view>
+    <view class="list-item">不得无故爽约。</view>
+    <view class="list-item">不得临时恶意加价。</view>
+    <view class="list-item">不得私自诱导用户进行不安全交易。</view>
+    <view class="list-item">不得泄露家长和学生隐私。</view>
+    <view class="list-item">如无法按时上课，应及时说明原因。</view>
+  </view>
+
+  <view class="service-card">
+    <view class="card-title">费用说明</view>
+    <view class="card-text">平台提供课时费参考区间。具体费用以双方沟通确认结果为准。第一版平台主要提供信息展示和联系方式解锁服务，不直接参与线下课时费结算。</view>
+  </view>
+
+  <view class="service-card tip-card">
+    <view class="card-title">违规处理</view>
+    <view class="card-text">如老师存在虚假资料、恶意爽约、骚扰用户、泄露隐私等行为，平台有权限制展示、暂停接单或封禁账号。</view>
+  </view>
+
+  <view class="bottom-actions">
+    <button class="btn-secondary" bindtap="goHome">返回首页</button>
+    <button class="btn-primary" bindtap="contactService">联系客服</button>
+  </view>
+</view>

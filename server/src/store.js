@@ -86,7 +86,7 @@ function defaultFrontendConfigs(createdAt = now()) {
     {
       id: 4,
       configKey: 'search_placeholder',
-      configValue: '搜索科目、年级、学校、老师',
+      configValue: '搜索科目、年级',
       configType: 'text',
       description: '首页搜索框占位文案',
       enabled: true,
@@ -193,6 +193,8 @@ function seedData() {
         complaints: 1,
         parentRequirements: 4,
         unlockRecords: 1,
+        paymentOrders: 1,
+        contactLogs: 1,
         parentProfiles: 3,
         admins: 4,
         adminLoginTickets: 1,
@@ -612,6 +614,8 @@ function seedData() {
       }
     ],
     unlockRecords: [],
+    paymentOrders: [],
+    contactLogs: [],
     phoneVerifications: [],
     admins: [
       {
@@ -1216,14 +1220,16 @@ class Store {
     };
   }
 
-  createOrUpdateWechatUser({ code, devOpenid, nickname, avatar }) {
+  createOrUpdateWechatUser({ code, devOpenid, openid, sessionKey, unionid, nickname, avatar }) {
     const loginCode = String(code || '').trim();
     const stableDevOpenid = String(devOpenid || '').trim();
-    const openid = stableDevOpenid || (loginCode.startsWith('mock_') ? loginCode : `wx_${loginCode || Date.now()}`);
-    let user = this.table('users').find((item) => item.openid === openid);
+    const resolvedOpenid = String(openid || '').trim() || stableDevOpenid || (loginCode.startsWith('mock_') ? loginCode : `wx_${loginCode || Date.now()}`);
+    let user = this.table('users').find((item) => item.openid === resolvedOpenid);
     if (user) {
       user.nickname = nickname || user.nickname;
       user.avatar = avatar || user.avatar;
+      user.wechatSessionKey = sessionKey || user.wechatSessionKey || '';
+      user.unionid = unionid || user.unionid || '';
       user.lastLoginAt = now();
       this.touch(user);
       this.save();
@@ -1233,7 +1239,9 @@ class Store {
     const createdAt = now();
     user = {
       id: this.nextId('users'),
-      openid,
+      openid: resolvedOpenid,
+      wechatSessionKey: sessionKey || '',
+      unionid: unionid || '',
       phone: '',
       nickname: nickname || '微信用户',
       avatar: avatar || '',

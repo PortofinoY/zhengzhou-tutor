@@ -33,5 +33,6 @@
       <text class="contact-value">{{requirement.contactWechat}}</text>
     </view>
     <view class="muted contact-note">请遵守平台规则沟通，不公开孩子姓名、学校、班级和详细住址。</view>
+    <button class="btn btn-ghost contact-log-btn" loading="{{contactLogging}}" disabled="{{contactLogging}}" bindtap="recordContact">记录已联系</button>
   </view>
 </view>

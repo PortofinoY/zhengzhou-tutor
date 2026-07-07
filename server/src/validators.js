@@ -155,6 +155,33 @@ function validateComplaintPayload(body) {
   }
 }
 
+function validateRequirementPayload(body) {
+  assertRequired(body.parentDisplayName || body.parentName, '请填写家长称呼');
+  assertRequired(body.district, '请选择所在区域');
+  assertRequired(body.childGrade, '请选择孩子年级');
+  assertRequired(body.subject, '请选择辅导科目');
+  assertRequired(body.expectedTime, '请填写期望上课时间');
+  assertRequired(body.budgetPrice, '请填写预算课时费');
+  assertRequired(body.studySituation, '请填写孩子学习情况');
+  assertRequired(body.teacherRequirement, '请填写对老师的要求');
+  assertMaxLength(body.parentDisplayName || body.parentName, 20, '家长称呼最多 20 个字');
+  assertMaxLength(body.expectedTime, 80, '期望上课时间最多 80 个字');
+  assertMaxLength(body.studySituation, 500, '孩子学习情况最多 500 字');
+  assertMaxLength(body.teacherRequirement, 500, '对老师的要求最多 500 字');
+  const price = Number(body.budgetPrice);
+  if (!Number.isInteger(price) || price <= 0) throw createError(400, '预算课时费必须为正整数');
+  if (body.contactPhone) assertChinaPhone(body.contactPhone, '联系方式手机号格式不正确');
+}
+
+function validateContactLogPayload(body) {
+  assertRequired(body.targetType, '缺少联系对象类型');
+  assertRequired(body.targetId, '缺少联系对象 ID');
+  if (!['teacher', 'parent_requirement'].includes(body.targetType)) throw createError(400, '联系对象类型不正确');
+  const status = body.contactStatus || body.status || 'contacted';
+  if (!['contacted', 'scheduled', 'unreachable', 'canceled', 'complaint'].includes(status)) throw createError(400, '联系状态不正确');
+  assertMaxLength(body.note, 300, '联系备注最多 300 字');
+}
+
 module.exports = {
   createError,
   assertRequired,
@@ -167,6 +194,8 @@ module.exports = {
   validateOrderPayload,
   validateReviewPayload,
   validateComplaintPayload,
+  validateRequirementPayload,
+  validateContactLogPayload,
   minutesOf,
   dictionaries: {
     areas: ZHENGZHOU_AREAS,

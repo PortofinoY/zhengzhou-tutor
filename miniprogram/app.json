@@ -20,7 +20,10 @@
     "pages/teacher-reviews/teacher-reviews",
     "pages/teacher-rules/teacher-rules",
     "pages/agreement/agreement",
-    "pages/privacy/privacy"
+    "pages/privacy/privacy",
+    "pages/service/classGuide/index",
+    "pages/service/orderAgreement/index",
+    "pages/service/disclaimer/index"
   ],
   "window": {
     "navigationBarTitleText": "郑州大学生家教",

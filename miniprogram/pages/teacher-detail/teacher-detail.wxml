@@ -52,6 +52,28 @@
   <view class="section-title">教学经历</view>
   <view class="card text-block">{{teacher.teachingExperience || '暂无补充'}}</view>
 
+  <view class="section-title">联系方式</view>
+  <view wx:if="{{!teacher.unlocked}}" class="card lock-card">
+    <view class="lock-title">联系方式已隐藏</view>
+    <view class="muted">{{teacher.contactLockedText}}</view>
+    <view class="masked-line">手机号：{{teacher.contactPhoneMasked || '解锁后可见'}}</view>
+    <button class="btn btn-primary unlock-btn" loading="{{unlocking}}" disabled="{{unlocking}}" bindtap="unlockContact">
+      <text>{{unlocking ? '解锁中...' : '9.9元解锁老师联系方式'}}</text>
+    </button>
+  </view>
+  <view wx:else class="card contact-card">
+    <view class="contact-row">
+      <text class="contact-label">手机号</text>
+      <text class="contact-value">{{teacher.contactPhone}}</text>
+    </view>
+    <view wx:if="{{teacher.contactWechat}}" class="contact-row">
+      <text class="contact-label">微信号</text>
+      <text class="contact-value">{{teacher.contactWechat}}</text>
+    </view>
+    <view class="muted contact-note">请遵守平台规则沟通，不公开学生隐私，不进行不安全交易。</view>
+    <button class="btn btn-ghost contact-log-btn" loading="{{contactLogging}}" disabled="{{contactLogging}}" bindtap="recordContact">记录已联系</button>
+  </view>
+
   <view class="section-title">家长评价</view>
   <view wx:if="{{reviews.length === 0}}" class="empty">暂无评价</view>
   <view wx:for="{{reviews}}" wx:key="id" class="card">

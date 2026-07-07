@@ -74,7 +74,22 @@ API_BASE_URL = 'http://127.0.0.1:3000'
 API_BASE_URL = 'http://192.168.x.x:3000'
 ```
 
-当前后端是本地 JSON 持久化的 MVP API，内置演示数据与开发环境 mock 微信登录/手机号授权逻辑。生产环境需要接入真实微信 `code2Session` 和手机号授权换取接口。
+当前后端是本地 JSON 持久化的 MVP API，内置演示数据与开发环境 mock 微信登录/手机号授权逻辑。后端已预留真实微信 `code2Session` 和手机号授权换取接口。
+
+生产环境启用真实微信登录和手机号授权时，需要在启动后端前配置：
+
+```bash
+export WECHAT_APPID="正式小程序 AppID"
+export WECHAT_SECRET="正式小程序 AppSecret"
+npm start
+```
+
+后端行为：
+
+- `POST /api/auth/wechat-login`：有 `WECHAT_APPID` 和 `WECHAT_SECRET` 时，会调用微信 `code2Session` 换取 `openid`；未配置时保留本地 mock，方便开发者工具预览。
+- `POST /api/auth/bind-phone`：有 `WECHAT_APPID` 和 `WECHAT_SECRET` 时，会调用微信手机号授权接口换取手机号；未配置时继续使用开发 mock 手机号。
+- 请求中带 `devOpenid` 或 `mock_` 前缀 code 时，始终走开发 mock，便于自动化测试和本地演示。
+- 后端不会把微信 `openid` 返回给小程序前端页面。
 
 当前项目 `appid` 仍为 `touristappid` 时，微信开发者工具会处于游客模式。游客模式下真实 `wx.login` 和 `getPhoneNumber` 可能触发微信 SDK 内部限制，所以开发环境默认在 `miniprogram/utils/config.js` 中开启：
 
@@ -83,6 +98,18 @@ DEVELOPMENT_MOCK_WECHAT_API = true
 ```
 
 接入正式小程序 AppID 和微信服务端能力后，再将该开关改为 `false`。
+
+真实微信登录联调时，小程序端需要同时检查：
+
+```js
+DEVELOPMENT_MOCK_WECHAT_API = false
+```
+
+关闭后：
+
+- 登录页会调用真实 `wx.login`，并把微信返回的 `code` 发送到 `/api/auth/wechat-login`。
+- 手机号授权页会使用 `open-type="getPhoneNumber"`，并把微信返回的手机号授权 `code` 发送到 `/api/auth/bind-phone`。
+- `DEVELOPMENT_MOCK_OPENID` 只在 `DEVELOPMENT_MOCK_WECHAT_API = true` 时生效，真实微信联调不会再向后端发送 `devOpenid`。
 
 ## 验收重点
 

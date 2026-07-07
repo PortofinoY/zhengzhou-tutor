@@ -1,19 +1,7 @@
 const { request, showError } = require('../../utils/request');
 const { redirectAfterAuth } = require('../../utils/auth');
 const { DEVELOPMENT_MOCK_OPENID, DEVELOPMENT_MOCK_WECHAT_API } = require('../../utils/config');
-
-function devOpenid() {
-  if (!DEVELOPMENT_MOCK_OPENID) return '';
-  if (!wx.getStorageSync('token') && !wx.getStorageSync('user')) {
-    wx.removeStorageSync('devMockOpenid');
-  }
-  let openid = wx.getStorageSync('devMockOpenid');
-  if (!openid) {
-    openid = `mock_dev_openid_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
-    wx.setStorageSync('devMockOpenid', openid);
-  }
-  return openid;
-}
+const { buildWechatLoginPayload, resolveDevOpenid } = require('../../utils/wechat-auth');
 
 Page({
   data: {
@@ -42,10 +30,16 @@ Page({
     if (DEVELOPMENT_MOCK_WECHAT_API) {
       return Promise.resolve(`mock_login_code_${Date.now()}`);
     }
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       wx.login({
-        success: (res) => resolve(res.code || `mock_${Date.now()}`),
-        fail: () => resolve(`mock_${Date.now()}`)
+        success: (res) => {
+          if (res.code) {
+            resolve(res.code);
+            return;
+          }
+          reject(new Error('微信登录失败，请稍后重试'));
+        },
+        fail: () => reject(new Error('微信登录失败，请稍后重试'))
       });
     });
   },
@@ -60,12 +54,17 @@ Page({
       const code = await this.getWechatLoginCode();
       const data = await request('/auth/wechat-login', {
         method: 'POST',
-        data: {
+        data: buildWechatLoginPayload({
           code,
-          devOpenid: devOpenid(),
+          devOpenid: resolveDevOpenid({
+            mockWechatApiEnabled: DEVELOPMENT_MOCK_WECHAT_API,
+            mockOpenidEnabled: DEVELOPMENT_MOCK_OPENID,
+            hasSession: Boolean(wx.getStorageSync('token') || wx.getStorageSync('user')),
+            storage: wx
+          }),
           nickname: '微信用户',
           avatar: ''
-        }
+        })
       });
       wx.showToast({ title: '登录成功', icon: 'success' });
       setTimeout(() => redirectAfterAuth(data, this.data.redirect), 350);

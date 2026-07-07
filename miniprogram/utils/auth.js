@@ -47,6 +47,12 @@ function isTabPage(path) {
   return ['/pages/index/index', '/pages/profile/profile'].includes(path);
 }
 
+function withRedirect(url, redirect) {
+  if (!redirect) return url;
+  const joiner = url.indexOf('?') >= 0 ? '&' : '?';
+  return `${url}${joiner}redirect=${encodeURIComponent(redirect)}`;
+}
+
 function openByPath(url, replace = true) {
   const target = url || '/pages/index/index';
   const path = target.split('?')[0];
@@ -67,11 +73,12 @@ function backOrHome(delta = 1) {
   wx.switchTab({ url: '/pages/index/index' });
 }
 
-function profilePageFor(user) {
+function profilePageFor(user, redirect = '') {
   if (!user) return '/pages/index/index';
-  if (user.profileStatus === 'pending_role') return '/pages/identity/identity';
+  if (user.profileStatus === 'pending_role') return withRedirect('/pages/identity/identity', redirect);
   if (user.profileStatus === 'pending_profile') {
-    return user.currentRole === 'teacher' ? '/pages/teacher-apply/teacher-apply' : '/pages/parent-profile/parent-profile';
+    const page = user.currentRole === 'teacher' ? '/pages/teacher-apply/teacher-apply' : '/pages/parent-profile/parent-profile';
+    return withRedirect(page, redirect);
   }
   return '';
 }
@@ -79,11 +86,12 @@ function profilePageFor(user) {
 function redirectAfterAuth(data = {}, fallback = '/pages/index/index') {
   if (data.token || data.user || data.userInfo || data.teacher !== undefined) setSession(data);
   const user = data.user || data.userInfo || currentUser();
-  const onboardingUrl = profilePageFor(user);
+  const onboardingUrl = profilePageFor(user, fallback);
   if (onboardingUrl) {
     const pages = getCurrentPages();
     const currentRoute = pages.length ? `/${pages[pages.length - 1].route}` : '';
-    if (currentRoute !== onboardingUrl) {
+    const onboardingPath = onboardingUrl.split('?')[0];
+    if (currentRoute !== onboardingPath) {
       wx.navigateTo({ url: onboardingUrl });
     }
     return;
@@ -93,9 +101,9 @@ function redirectAfterAuth(data = {}, fallback = '/pages/index/index') {
 
 function ensureProfileReady(redirect = '/pages/index/index') {
   const user = currentUser();
-  const onboardingUrl = profilePageFor(user);
+  const onboardingUrl = profilePageFor(user, redirect);
   if (!onboardingUrl) return true;
-  wx.navigateTo({ url: `${onboardingUrl}?redirect=${encodeURIComponent(redirect)}` });
+  wx.navigateTo({ url: onboardingUrl });
   return false;
 }
 

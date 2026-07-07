@@ -40,7 +40,9 @@ function serveStatic(req, res) {
 function createServer(options = {}) {
   const store = options.store || new Store(options.dbPath);
   store.load();
-  const api = new TutorApi(store);
+  const api = new TutorApi(store, {
+    wechatClient: options.wechatClient
+  });
   return http.createServer((req, res) => {
     if (req.url.startsWith('/api/') || req.url.startsWith('/admin-api/')) {
       api.handle(req, res);

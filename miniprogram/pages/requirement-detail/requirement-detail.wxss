@@ -30,6 +30,10 @@
   margin-top: 24rpx;
 }
 
+.contact-log-btn {
+  margin-top: 24rpx;
+}
+
 .contact-row {
   display: flex;
   align-items: center;
