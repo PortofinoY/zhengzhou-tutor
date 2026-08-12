@@ -6,8 +6,8 @@ function createError(status, message) {
   return error;
 }
 
-function env(name, fallback = '') {
-  return process.env[name] || fallback;
+function envValue(environment, name, fallback = '') {
+  return environment[name] || fallback;
 }
 
 function normalizeSecret(value) {
@@ -15,10 +15,30 @@ function normalizeSecret(value) {
   return text;
 }
 
+function validateWechatConfiguration(environment = process.env) {
+  const nodeEnv = String(environment.NODE_ENV || 'development').trim().toLowerCase();
+  if (nodeEnv !== 'production') return;
+  const appId = normalizeSecret(environment.WECHAT_APPID);
+  const appSecret = normalizeSecret(environment.WECHAT_SECRET);
+  if (!appId || !appSecret) {
+    throw new Error('生产环境缺少 WECHAT_APPID 或 WECHAT_SECRET，服务已拒绝启动');
+  }
+}
+
 class WechatClient {
   constructor(options = {}) {
-    this.appId = normalizeSecret(options.appId || env('WECHAT_APPID') || env('WX_APPID'));
-    this.appSecret = normalizeSecret(options.appSecret || env('WECHAT_SECRET') || env('WX_SECRET') || env('WECHAT_APPSECRET'));
+    const environment = options.environment || process.env;
+    this.appId = normalizeSecret(
+      options.appId ||
+      envValue(environment, 'WECHAT_APPID') ||
+      envValue(environment, 'WX_APPID')
+    );
+    this.appSecret = normalizeSecret(
+      options.appSecret ||
+      envValue(environment, 'WECHAT_SECRET') ||
+      envValue(environment, 'WX_SECRET') ||
+      envValue(environment, 'WECHAT_APPSECRET')
+    );
     this.fetchImpl = options.fetchImpl || global.fetch;
     this.accessToken = '';
     this.accessTokenExpiresAt = 0;
@@ -118,5 +138,6 @@ function createWechatClient(options = {}) {
 
 module.exports = {
   WechatClient,
-  createWechatClient
+  createWechatClient,
+  validateWechatConfiguration
 };

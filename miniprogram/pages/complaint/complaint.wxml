@@ -15,8 +15,8 @@
       <text class="label">问题说明</text>
       <textarea class="textarea" maxlength="500" value="{{form.description}}" data-field="description" bindinput="onInput"></textarea>
     </view>
-    <button class="btn btn-ghost" bindtap="chooseImages"><text class="btn-icon">图</text><text>上传图片证据（最多 6 张）</text></button>
-    <view class="muted image-count">已选择 {{form.images.length}} 张</view>
-    <button class="btn btn-primary submit" bindtap="submit"><text class="btn-icon">✓</text><text>提交问题</text></button>
+    <button class="btn btn-ghost" disabled="{{imagesUploading}}" bindtap="chooseImages"><text class="btn-icon">图</text><text>{{imagesUploading ? '图片上传中...' : '上传图片证据（最多 6 张）'}}</text></button>
+    <view class="muted image-count">已上传 {{form.images.length}} 张</view>
+    <button class="btn btn-primary submit" disabled="{{imagesUploading}}" bindtap="submit"><text class="btn-icon">✓</text><text>提交问题</text></button>
   </view>
 </view>

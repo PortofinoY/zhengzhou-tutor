@@ -13,6 +13,9 @@
     <view class="detail-row"><text>科目</text><text>{{order.subject}}</text></view>
     <view class="detail-row"><text>年级</text><text>{{order.studentGrade}}</text></view>
     <view class="detail-row"><text>预约时间</text><text>{{order.appointmentDate}} {{order.startTime}}-{{order.endTime}}</text></view>
+    <view wx:if="{{order.hours}}" class="detail-row"><text>课时</text><text>{{order.hours}}小时</text></view>
+    <view wx:if="{{order.hourlyRate}}" class="detail-row"><text>课时费</text><text>¥{{order.hourlyRate}}/小时</text></view>
+    <view wx:if="{{order.totalAmount}}" class="detail-row"><text>费用参考</text><text>¥{{order.totalAmount}}</text></view>
     <view class="detail-row"><text>上课区域</text><text>{{order.serviceArea}}</text></view>
     <view class="detail-row"><text>详细地址</text><text>{{order.address}}</text></view>
     <view class="detail-row"><text>联系人</text><text>{{order.contactName}}</text></view>

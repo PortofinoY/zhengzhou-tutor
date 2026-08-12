@@ -1,3 +1,5 @@
+const { SHOW_DEV_TOOLS, DEMO_MODE_SWITCH } = require('./utils/config');
+
 App({
   globalData: {
     token: '',
@@ -6,6 +8,14 @@ App({
     teacher: null
   },
   onLaunch() {
+    if (!SHOW_DEV_TOOLS || !DEMO_MODE_SWITCH) {
+      wx.removeStorageSync('demoMode');
+      wx.removeStorageSync('demoState');
+      wx.removeStorageSync('demoSessionBackup');
+      wx.removeStorageSync('localTestMode');
+      wx.removeStorageSync('localTestState');
+      wx.removeStorageSync('devMockOpenid');
+    }
     const token = wx.getStorageSync('token');
     const user = wx.getStorageSync('user');
     if (!token && !user) wx.removeStorageSync('devMockOpenid');

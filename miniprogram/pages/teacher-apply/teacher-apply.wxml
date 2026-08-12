@@ -45,8 +45,8 @@
       <input class="input" value="{{form.major}}" data-field="major" bindinput="onInput" />
     </view>
     <view class="grid">
-      <button class="btn btn-ghost" bindtap="chooseAvatar"><text class="btn-icon">像</text><text>{{form.avatar ? '已选择头像' : '上传本人头像'}}</text></button>
-      <button class="btn btn-ghost" bindtap="chooseCertification"><text class="btn-icon">证</text><text>{{form.certificationImage ? '已选择学生证照片' : '上传学生证照片'}}</text></button>
+      <button class="btn btn-ghost" disabled="{{avatarUploading}}" bindtap="chooseAvatar"><text class="btn-icon">像</text><text>{{avatarUploading ? '头像上传中...' : (form.avatar ? '头像已上传' : '上传本人头像')}}</text></button>
+      <button class="btn btn-ghost" disabled="{{certificationUploading}}" bindtap="chooseCertification"><text class="btn-icon">证</text><text>{{certificationUploading ? '学生证上传中...' : (form.certificationImage ? '学生证已上传' : '上传学生证照片')}}</text></button>
     </view>
   </view>
 

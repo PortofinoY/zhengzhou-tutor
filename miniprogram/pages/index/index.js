@@ -1,6 +1,7 @@
 const { request: apiRequest } = require('../../utils/api');
 const { request, showError } = require('../../utils/request');
 const { requireLogin, requirePhone, redirectAfterAuth } = require('../../utils/auth');
+const demoStore = require('../../utils/local-test');
 
 const STAGE_SHORTCUTS = [
   { label: '小学', grade: '小学', icon: '小', tone: 'primary' },
@@ -147,6 +148,7 @@ Page({
     homeMode: 'guest',
     userInfo: null,
     currentRole: '',
+    demoModeActive: false,
     keyword: '',
     homeConfig: {
       title: '郑州大学生家教',
@@ -187,6 +189,7 @@ Page({
   },
 
   async onShow() {
+    this.setData({ demoModeActive: demoStore.isDemoMode() });
     this.loadPublicConfig();
     this.loadRecommended();
     this.loadRecommendedRequirements();
@@ -448,16 +451,10 @@ Page({
   },
 
   goDemand() {
-    if (!requireLogin('/pages/index/index')) return;
-    if (!requirePhone('/pages/index/index')) return;
-    wx.showModal({
-      title: '发布辅导需求',
-      content: '需求发布功能正在内测中。你可以先通过“找老师”筛选合适老师并提交预约，平台会保留完整预约记录。',
-      confirmText: '去找老师',
-      success: (res) => {
-        if (res.confirm) this.goTeacherList();
-      }
-    });
+    const target = '/pages/requirement-publish/requirement-publish';
+    if (!requireLogin(target)) return;
+    if (!requirePhone(target)) return;
+    wx.navigateTo({ url: target });
   },
 
   goContact() {

@@ -1,0 +1,18 @@
+CREATE TABLE IF NOT EXISTS reviews (
+  id BIGINT UNSIGNED PRIMARY KEY, order_id BIGINT UNSIGNED NOT NULL,
+  parent_user_id BIGINT UNSIGNED NOT NULL, teacher_id BIGINT UNSIGNED NOT NULL,
+  star_rating TINYINT UNSIGNED NOT NULL, attitude_rating TINYINT UNSIGNED NOT NULL,
+  punctuality_rating TINYINT UNSIGNED NOT NULL, clarity_rating TINYINT UNSIGNED NOT NULL,
+  child_acceptance_rating TINYINT UNSIGNED NOT NULL, content TEXT NULL,
+  is_visible TINYINT(1) NOT NULL DEFAULT 1, hidden_reason TEXT NULL,
+  created_at VARCHAR(40) NOT NULL, updated_at VARCHAR(40) NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS complaints (
+  id BIGINT UNSIGNED PRIMARY KEY, complaint_no VARCHAR(48) NOT NULL,
+  order_id BIGINT UNSIGNED NOT NULL, complainant_user_id BIGINT UNSIGNED NOT NULL,
+  complainant_role VARCHAR(24) NOT NULL, target_user_id BIGINT UNSIGNED NOT NULL,
+  reason VARCHAR(80) NOT NULL, description TEXT NOT NULL, images_json JSON NOT NULL,
+  status VARCHAR(24) NOT NULL, result TEXT NULL, handler_admin_id BIGINT UNSIGNED NULL,
+  created_at VARCHAR(40) NOT NULL, updated_at VARCHAR(40) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

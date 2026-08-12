@@ -1,0 +1,129 @@
+page {
+  background: #F7F9FA;
+}
+
+.records-page {
+  min-height: 100vh;
+  padding-bottom: 46rpx;
+  background: linear-gradient(180deg, #EAFBF7 0%, #F7F9FA 38%, #FFFFFF 100%);
+}
+
+.records-hero,
+.record-card,
+.empty-card {
+  border: 1rpx solid #E5EAF0;
+  border-radius: 26rpx;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 6rpx 22rpx rgba(30, 58, 95, 0.06);
+}
+
+.records-hero {
+  padding: 30rpx;
+}
+
+.records-title {
+  color: #1F2933;
+  font-size: 38rpx;
+  font-weight: 900;
+}
+
+.records-subtitle,
+.record-meta,
+.record-time,
+.record-note,
+.empty-desc {
+  color: #6B7280;
+  font-size: 24rpx;
+  line-height: 1.45;
+}
+
+.records-subtitle {
+  margin-top: 10rpx;
+}
+
+.record-card {
+  margin-top: 18rpx;
+  padding: 24rpx;
+}
+
+.record-head,
+.record-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.record-title {
+  color: #1F2933;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.record-meta {
+  margin-top: 8rpx;
+}
+
+.status-pill {
+  min-height: 42rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  color: #20A894;
+  background: #EAFBF7;
+  font-size: 22rpx;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.record-foot {
+  margin-top: 18rpx;
+}
+
+.record-note {
+  max-width: 360rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-card {
+  margin-top: 22rpx;
+  padding: 70rpx 36rpx;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 92rpx;
+  height: 92rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20rpx;
+  border-radius: 30rpx;
+  color: #2BB3A3;
+  background: #E8F7F4;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.empty-title {
+  color: #1F2933;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.empty-desc {
+  margin-top: 10rpx;
+}
+
+.tap-active {
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.tap-active:active {
+  transform: scale(0.985);
+  opacity: 0.92;
+}

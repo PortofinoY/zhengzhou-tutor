@@ -38,6 +38,8 @@ test('requirement unlock plan uses teacher price and requirement endpoints', () 
 test('unlock records route back to the correct detail page', () => {
   assert.equal(recordDetailUrl({ targetType: 'teacher_contact', targetId: 2 }), '/pages/teacher-detail/teacher-detail?id=2');
   assert.equal(recordDetailUrl({ targetType: 'parent_contact', targetId: 5 }), '/pages/requirement-detail/requirement-detail?id=5');
+  assert.equal(recordDetailUrl({ targetType: 'teacher', targetId: 2 }), '/pages/teacher-detail/teacher-detail?id=2');
+  assert.equal(recordDetailUrl({ targetType: 'parent_requirement', targetId: 5 }), '/pages/requirement-detail/requirement-detail?id=5');
   assert.equal(recordTypeText('teacher_contact'), '老师联系方式');
   assert.equal(recordTypeText('parent_contact'), '家长联系方式');
 });

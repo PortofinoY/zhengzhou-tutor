@@ -1,0 +1,80 @@
+<view class="page requirement-publish-page">
+  <view class="section publish-hero">
+    <view class="title"><text class="title-icon">需</text>发布辅导需求</view>
+    <view class="subtitle">填写孩子年级、科目和预算后，审核通过的老师可浏览基础需求，并付费解锁联系方式。</view>
+  </view>
+
+  <view class="section">
+    <view class="form-item">
+      <text class="label">家长称呼</text>
+      <input class="input" maxlength="20" placeholder-class="input-placeholder" placeholder="如 王妈妈、李先生" value="{{form.parentDisplayName}}" data-field="parentDisplayName" bindinput="onInput" />
+    </view>
+    <view class="grid">
+      <view class="form-item">
+        <text class="label">所在区域</text>
+        <picker range="{{areas}}" data-field="district" bindchange="onPicker">
+          <view class="picker-value">{{form.district || '请选择区域'}}</view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="label">孩子年级</text>
+        <picker range="{{grades}}" data-field="childGrade" bindchange="onPicker">
+          <view class="picker-value">{{form.childGrade || '请选择年级'}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="grid">
+      <view class="form-item">
+        <text class="label">辅导科目</text>
+        <picker range="{{subjects}}" data-field="subject" bindchange="onPicker">
+          <view class="picker-value">{{form.subject || '请选择科目'}}</view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="label">期望时间</text>
+        <picker range="{{times}}" data-field="expectedTime" bindchange="onPicker">
+          <view class="picker-value">{{form.expectedTime || '请选择时间'}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="form-item">
+      <text class="label">预算课时费</text>
+      <input class="input" type="number" placeholder-class="input-placeholder" placeholder="请输入每小时预算" value="{{form.budgetPrice}}" data-field="budgetPrice" bindinput="onInput" />
+      <view class="price-hint">{{priceHint.text}}</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="form-item remark-item">
+      <text class="label">孩子学习情况</text>
+      <textarea class="textarea" maxlength="500" placeholder-class="textarea-placeholder" placeholder="如基础较弱、需要作业辅导、想提升数学计算能力" value="{{form.studySituation}}" data-field="studySituation" bindinput="onInput"></textarea>
+    </view>
+    <view class="form-item remark-item">
+      <text class="label">对老师的要求</text>
+      <textarea class="textarea" maxlength="500" placeholder-class="textarea-placeholder" placeholder="如希望老师耐心、擅长初中数学、有家教经验" value="{{form.teacherRequirement}}" data-field="teacherRequirement" bindinput="onInput"></textarea>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="phone-auth-card">
+      <view>
+        <view class="phone-auth-title">联系方式</view>
+        <view class="phone-auth-desc">{{phoneMasked || '请先授权手机号后发布需求'}}</view>
+      </view>
+      <text class="phone-bound-tag">已授权</text>
+    </view>
+    <view class="form-item">
+      <text class="label">微信号（选填）</text>
+      <input class="input" maxlength="40" placeholder-class="input-placeholder" placeholder="老师解锁后可见，不填则不展示" value="{{form.contactWechat}}" data-field="contactWechat" bindinput="onInput" />
+    </view>
+    <view class="consent-row" bindtap="toggleConsent">
+      <text class="checkbox {{form.contactVisibleConsent ? 'checked' : ''}}">{{form.contactVisibleConsent ? '✓' : ''}}</text>
+      <text class="consent-text">我同意在老师付费解锁后，向该老师展示我的联系方式。</text>
+    </view>
+    <view class="privacy-note">平台不会在免费浏览状态下公开完整手机号、微信号和详细家庭地址。</view>
+  </view>
+
+  <button class="btn btn-primary submit" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">
+    <text>{{loading ? '发布中...' : '发布辅导需求'}}</text>
+  </button>
+</view>

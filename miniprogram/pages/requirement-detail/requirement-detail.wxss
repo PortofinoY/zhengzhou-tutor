@@ -5,12 +5,12 @@
 .text-block {
   color: #1F2933;
   font-size: 27rpx;
-  line-height: 1.7;
+  line-height: 1.62;
 }
 
 .lock-card,
 .contact-card {
-  padding: 28rpx;
+  padding: 24rpx;
 }
 
 .lock-title {
@@ -39,7 +39,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
-  padding: 18rpx 0;
+  padding: 16rpx 0;
   border-bottom: 1rpx solid #E5EAF0;
 }
 

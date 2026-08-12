@@ -4,7 +4,9 @@
     <view class="home-top">
       <view class="brand-row">
         <view class="brand-copy">
-          <view class="brand-name">郑育星上门家教</view>
+          <view class="brand-name">郑育星</view>
+          <view class="brand-slogan">真实认证 · 信息透明</view>
+          <view wx:if="{{demoModeActive}}" class="demo-home-badge">演示模式</view>
         </view>
       </view>
 

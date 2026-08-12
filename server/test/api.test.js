@@ -5,17 +5,20 @@ const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs');
 
+process.env.PASSWORD_BCRYPT_ROUNDS = '4';
+
 const dbPath = path.join(os.tmpdir(), `zz-tutor-mvp-${Date.now()}.json`);
 process.env.TUTOR_DB_PATH = dbPath;
 
 const { createServer } = require('../src/index');
+const { Store } = require('../src/store');
 
 let server;
 let baseUrl;
 
 test.before(async () => {
   if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
-  server = createServer({ dbPath });
+  server = await createServer({ dbPath, seedDemoData: true, allowMockFeatures: true });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   baseUrl = `http://127.0.0.1:${address.port}`;
@@ -42,27 +45,33 @@ async function api(pathname, options = {}) {
 
 async function withIsolatedServer(options, fn) {
   const isolatedDbPath = path.join(os.tmpdir(), `zz-tutor-mvp-isolated-${Date.now()}-${Math.random()}.json`);
-  const isolatedServer = createServer({ dbPath: isolatedDbPath, ...options });
+  const isolatedServer = await createServer({
+    dbPath: isolatedDbPath,
+    seedDemoData: true,
+    allowMockFeatures: true,
+    ...options
+  });
   await new Promise((resolve) => isolatedServer.listen(0, '127.0.0.1', resolve));
   const address = isolatedServer.address();
   const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
 
   async function isolatedApi(pathname, requestOptions = {}) {
+    const isFormData = typeof FormData !== 'undefined' && requestOptions.body instanceof FormData;
     const response = await fetch(`${isolatedBaseUrl}${pathname}`, {
       ...requestOptions,
       headers: {
-        'Content-Type': 'application/json',
+        ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
         ...(requestOptions.token ? { Authorization: `Bearer ${requestOptions.token}` } : {}),
         ...(requestOptions.headers || {})
       },
-      body: requestOptions.body ? JSON.stringify(requestOptions.body) : undefined
+      body: requestOptions.body ? (isFormData ? requestOptions.body : JSON.stringify(requestOptions.body)) : undefined
     });
     const json = await response.json();
     return { status: response.status, json };
   }
 
   try {
-    await fn(isolatedApi);
+    await fn(isolatedApi, { baseUrl: isolatedBaseUrl, dbPath: isolatedDbPath });
   } finally {
     await new Promise((resolve) => isolatedServer.close(resolve));
     if (fs.existsSync(isolatedDbPath)) fs.unlinkSync(isolatedDbPath);
@@ -140,17 +149,6 @@ test('wechat login, select role and complete parent profile', async () => {
   assert.equal(registered.json.data.user.profileStatus, 'pending_role');
   assert.equal(registered.json.data.user.currentRole, '');
   assert.equal(registered.json.data.user.phoneBound, false);
-
-  const removedRegister = await api('/api/auth/register', {
-    method: 'POST',
-    body: {
-      phone: '13900000111',
-      password: 'Abc123456',
-      confirmPassword: 'Abc123456',
-      smsCode: '123456'
-    }
-  });
-  assert.equal(removedRegister.status, 404);
 
   const blocked = await api('/api/orders', {
     method: 'POST',
@@ -384,6 +382,8 @@ test('parent appointment and order lifecycle', async () => {
   const parentToken = await login('mock_test_parent', '13900000001');
   await completeParentProfile(parentToken, '13900000001');
   const teacherToken = await login('mock_teacher_001');
+  const unrelatedParentToken = await login('mock_unrelated_order_parent', '13900000019');
+  await completeParentProfile(unrelatedParentToken, '13900000019');
 
   const created = await api('/api/orders', {
     method: 'POST',
@@ -409,12 +409,33 @@ test('parent appointment and order lifecycle', async () => {
   const teacherBeforeAccept = await api(`/api/orders/${orderId}`, { token: teacherToken });
   assert.equal(teacherBeforeAccept.status, 200);
   assert.equal(teacherBeforeAccept.json.data.order.contactPhone, '');
+  assert.equal(teacherBeforeAccept.json.data.order.parent.phone, undefined);
+
+  const teacherListBeforeAccept = await api('/api/orders?view=teacher', { token: teacherToken });
+  const listedOrderBeforeAccept = teacherListBeforeAccept.json.data.list.find((item) => item.id === orderId);
+  assert.equal(listedOrderBeforeAccept.contactPhone, '');
+  assert.equal(listedOrderBeforeAccept.parent.phone, undefined);
+
+  const unrelated = await api(`/api/orders/${orderId}`, { token: unrelatedParentToken });
+  assert.equal(unrelated.status, 403);
+
+  const adminLogin = await api('/api/admin/login', {
+    method: 'POST',
+    body: { username: 'admin', password: 'Admin@123456' }
+  });
+  assert.equal(adminLogin.status, 200);
+  const adminOrder = await api(`/api/admin/orders/${orderId}`, { token: adminLogin.json.data.token });
+  assert.equal(adminOrder.status, 200);
+  assert.equal(adminOrder.json.data.order.parent.phone, '13900000001');
+  assert.equal(adminOrder.json.data.order.contactPhone, '13900000001');
 
   const accepted = await api(`/api/orders/${orderId}/accept`, { method: 'POST', token: teacherToken, body: {} });
   assert.equal(accepted.json.data.order.status, 'pending_class');
 
   const teacherAfterAccept = await api(`/api/orders/${orderId}`, { token: teacherToken });
   assert.equal(teacherAfterAccept.json.data.order.address, '金水区测试小区 1 号楼');
+  assert.equal(teacherAfterAccept.json.data.order.parent.phone, '13900000001');
+  assert.equal(teacherAfterAccept.json.data.order.contactPhone, '13900000001');
 
   const started = await api(`/api/orders/${orderId}/start`, { method: 'POST', token: teacherToken, body: {} });
   assert.equal(started.json.data.order.status, 'in_class');
@@ -455,14 +476,381 @@ test('parent appointment and order lifecycle', async () => {
   assert.equal(duplicate.status, 400);
 });
 
-test('ordinary user account password auth routes are not exposed', async () => {
-  for (const pathname of ['/api/auth/login', '/api/auth/account-login', '/api/auth/login-entry', '/api/auth/send-phone-code']) {
-    const res = await api(pathname, {
-      method: 'POST',
-      body: { phone: '13800138001', account: '13800138001', username: '13800138001', password: 'Parent@123456' }
+test('ordinary user can register and login with phone password', async () => {
+  const phone = '13900008881';
+  const registerRes = await api('/api/auth/register', {
+    method: 'POST',
+    body: {
+      phone,
+      password: 'User@123456',
+      confirmPassword: 'User@123456',
+      smsCode: '123456'
+    }
+  });
+  assert.equal(registerRes.status, 200);
+  assert.ok(registerRes.json.data.token);
+  assert.equal(registerRes.json.data.user.profileStatus, 'pending_role');
+  assert.equal(registerRes.json.data.user.currentRole, '');
+  assert.equal(registerRes.json.data.user.phoneMasked, '139****8881');
+  assert.equal(registerRes.json.data.user.accountPasswordHash, undefined);
+
+  const duplicate = await api('/api/auth/register', {
+    method: 'POST',
+    body: {
+      phone,
+      password: 'User@123456',
+      confirmPassword: 'User@123456',
+      smsCode: '123456'
+    }
+  });
+  assert.equal(duplicate.status, 400);
+
+  const loginRes = await api('/api/auth/login', {
+    method: 'POST',
+    body: {
+      phone,
+      password: 'User@123456'
+    }
+  });
+  assert.equal(loginRes.status, 200);
+  assert.ok(loginRes.json.data.token);
+  assert.equal(loginRes.json.data.user.phoneMasked, '139****8881');
+  assert.equal(loginRes.json.data.user.accountPasswordHash, undefined);
+});
+
+test('successful login upgrades legacy user and admin password hashes', async () => {
+  const isolatedDbPath = path.join(os.tmpdir(), `zz-tutor-mvp-password-migration-${Date.now()}.json`);
+  const isolatedStore = new Store(isolatedDbPath, { seedDemoData: true });
+  isolatedStore.load();
+
+  const legacyHash = (password) => require('node:crypto')
+    .createHash('sha256')
+    .update(`zz-tutor:${password}`)
+    .digest('hex');
+
+  isolatedStore.table('users').find((item) => item.accountUsername === 'parent1').accountPasswordHash = legacyHash('Parent@123456');
+  isolatedStore.table('admins').find((item) => item.username === 'admin').passwordHash = legacyHash('Admin@123456');
+  isolatedStore.save();
+
+  const isolatedServer = await createServer({
+    store: isolatedStore,
+    seedDemoData: true,
+    allowMockFeatures: true
+  });
+  await new Promise((resolve) => isolatedServer.listen(0, '127.0.0.1', resolve));
+  const address = isolatedServer.address();
+  const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+  async function isolatedApi(pathname, options = {}) {
+    const response = await fetch(`${isolatedBaseUrl}${pathname}`, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      body: options.body ? JSON.stringify(options.body) : undefined
     });
-    assert.equal(res.status, 404);
+    return { status: response.status, json: await response.json() };
   }
+
+  try {
+    const userLogin = await isolatedApi('/api/auth/login', {
+      method: 'POST',
+      body: { phone: '13800138001', password: 'Parent@123456' }
+    });
+    assert.equal(userLogin.status, 200);
+
+    const adminLogin = await isolatedApi('/admin-api/auth/login', {
+      method: 'POST',
+      body: { username: 'admin', password: 'Admin@123456' }
+    });
+    assert.equal(adminLogin.status, 200);
+
+    const migrated = JSON.parse(fs.readFileSync(isolatedDbPath, 'utf8'));
+    assert.match(migrated.users.find((item) => item.accountUsername === 'parent1').accountPasswordHash, /^\$2[aby]\$/);
+    assert.match(migrated.admins.find((item) => item.username === 'admin').passwordHash, /^\$2[aby]\$/);
+  } finally {
+    await new Promise((resolve) => isolatedServer.close(resolve));
+    if (fs.existsSync(isolatedDbPath)) fs.unlinkSync(isolatedDbPath);
+  }
+});
+
+test('user logout revokes only the current token and a new login remains valid', async () => {
+  await withIsolatedServer({}, async (isolatedApi) => {
+    const firstLogin = await isolatedApi('/api/auth/login', {
+      method: 'POST',
+      body: { phone: '13800138001', password: 'Parent@123456' }
+    });
+    assert.equal(firstLogin.status, 200);
+    const firstToken = firstLogin.json.data.token;
+
+    const beforeLogout = await isolatedApi('/api/user/me', { token: firstToken });
+    assert.equal(beforeLogout.status, 200);
+
+    const logout = await isolatedApi('/api/auth/logout', {
+      method: 'POST',
+      token: firstToken
+    });
+    assert.equal(logout.status, 200);
+
+    const revoked = await isolatedApi('/api/user/me', { token: firstToken });
+    assert.equal(revoked.status, 401);
+
+    const secondLogin = await isolatedApi('/api/auth/login', {
+      method: 'POST',
+      body: { phone: '13800138001', password: 'Parent@123456' }
+    });
+    assert.equal(secondLogin.status, 200);
+    assert.notEqual(secondLogin.json.data.token, firstToken);
+
+    const active = await isolatedApi('/api/user/me', { token: secondLogin.json.data.token });
+    assert.equal(active.status, 200);
+  });
+});
+
+test('admin logout revokes the current admin token', async () => {
+  await withIsolatedServer({}, async (isolatedApi) => {
+    const loginRes = await isolatedApi('/admin-api/auth/login', {
+      method: 'POST',
+      body: { username: 'admin', password: 'Admin@123456' }
+    });
+    assert.equal(loginRes.status, 200);
+    const token = loginRes.json.data.token;
+
+    const logout = await isolatedApi('/admin-api/auth/logout', {
+      method: 'POST',
+      token
+    });
+    assert.equal(logout.status, 200);
+
+    const revoked = await isolatedApi('/admin-api/dashboard/summary', { token });
+    assert.equal(revoked.status, 401);
+  });
+});
+
+test('authenticated user can upload a persistent PNG image', async () => {
+  const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zz-tutor-uploads-'));
+  try {
+    await withIsolatedServer({ uploadDir }, async (isolatedApi, context) => {
+      const loginRes = await isolatedApi('/api/auth/login', {
+        method: 'POST',
+        body: { phone: '13800138002', password: 'Teacher@123456' }
+      });
+      assert.equal(loginRes.status, 200);
+
+      const form = new FormData();
+      form.append('purpose', 'avatar');
+      form.append('file', new Blob([Buffer.from('89504e470d0a1a0a', 'hex')], { type: 'image/png' }), 'avatar.png');
+      const uploaded = await isolatedApi('/api/uploads', {
+        method: 'POST',
+        token: loginRes.json.data.token,
+        body: form
+      });
+
+      assert.equal(uploaded.status, 200);
+      assert.equal(uploaded.json.data.purpose, 'avatar');
+      assert.equal(uploaded.json.data.mimeType, 'image/png');
+      assert.match(uploaded.json.data.url, /^http:\/\/127\.0\.0\.1:\d+\/uploads\/[a-z0-9-]+\.png$/);
+      assert.equal(fs.existsSync(path.join(uploadDir, path.basename(uploaded.json.data.url))), true);
+
+      const publicImage = await fetch(uploaded.json.data.url);
+      assert.equal(publicImage.status, 200);
+      assert.equal(publicImage.headers.get('content-type'), 'image/png');
+      assert.deepEqual(Buffer.from(await publicImage.arrayBuffer()), Buffer.from('89504e470d0a1a0a', 'hex'));
+
+      const evidenceForm = new FormData();
+      evidenceForm.append('purpose', 'complaint_evidence');
+      evidenceForm.append('file', new Blob([Buffer.from('89504e470d0a1a0a', 'hex')], { type: 'image/png' }), 'evidence.png');
+      const evidence = await isolatedApi('/api/uploads', {
+        method: 'POST',
+        token: loginRes.json.data.token,
+        body: evidenceForm
+      });
+      assert.equal(evidence.status, 200);
+      assert.equal(evidence.json.data.purpose, 'complaint_evidence');
+      assert.match(evidence.json.data.url, /\/uploads\/complaint_evidence-/);
+
+      const persisted = JSON.parse(fs.readFileSync(context.dbPath, 'utf8'));
+      assert.equal(persisted.uploadedFiles.length, 2);
+      assert.deepEqual(
+        persisted.uploadedFiles.map((item) => item.purpose),
+        ['avatar', 'complaint_evidence']
+      );
+    });
+  } finally {
+    fs.rmSync(uploadDir, { recursive: true, force: true });
+  }
+});
+
+test('image upload requires login and rejects unsupported file types', async () => {
+  const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zz-tutor-upload-validation-'));
+  try {
+    await withIsolatedServer({ uploadDir }, async (isolatedApi) => {
+      const unauthenticatedForm = new FormData();
+      unauthenticatedForm.append('purpose', 'avatar');
+      unauthenticatedForm.append('file', new Blob(['image'], { type: 'image/png' }), 'avatar.png');
+      const unauthenticated = await isolatedApi('/api/uploads', {
+        method: 'POST',
+        body: unauthenticatedForm
+      });
+      assert.equal(unauthenticated.status, 401);
+
+      const loginRes = await isolatedApi('/api/auth/login', {
+        method: 'POST',
+        body: { phone: '13800138002', password: 'Teacher@123456' }
+      });
+      const invalidForm = new FormData();
+      invalidForm.append('purpose', 'student_card');
+      invalidForm.append('file', new Blob(['not-an-image'], { type: 'text/plain' }), 'student-card.txt');
+      const invalid = await isolatedApi('/api/uploads', {
+        method: 'POST',
+        token: loginRes.json.data.token,
+        body: invalidForm
+      });
+      assert.equal(invalid.status, 400);
+      assert.equal(invalid.json.message, '仅支持 JPG、JPEG、PNG 图片');
+      assert.deepEqual(fs.readdirSync(uploadDir), []);
+
+      const oversizedForm = new FormData();
+      oversizedForm.append('purpose', 'avatar');
+      oversizedForm.append('file', new Blob([Buffer.alloc(10 * 1024 * 1024 + 1)], { type: 'image/png' }), 'large.png');
+      const oversized = await isolatedApi('/api/uploads', {
+        method: 'POST',
+        token: loginRes.json.data.token,
+        body: oversizedForm
+      });
+      assert.equal(oversized.status, 400);
+      assert.equal(oversized.json.message, '图片大小不能超过 10MB');
+      assert.deepEqual(fs.readdirSync(uploadDir), []);
+    });
+  } finally {
+    fs.rmSync(uploadDir, { recursive: true, force: true });
+  }
+});
+
+test('ordinary user password login rejects admin accounts and locks repeated failures', async () => {
+  const adminLogin = await api('/api/auth/login', {
+    method: 'POST',
+    body: {
+      phone: '18800000001',
+      password: 'Admin@123456'
+    }
+  });
+  assert.equal(adminLogin.status, 403);
+  assert.equal(adminLogin.json.message, '这是后台管理员账号，请打开后台管理端登录');
+
+  await withIsolatedServer({}, async (isolatedApi) => {
+    const phone = '13900008882';
+    const registerRes = await isolatedApi('/api/auth/register', {
+      method: 'POST',
+      body: {
+        phone,
+        password: 'User@123456',
+        confirmPassword: 'User@123456',
+        smsCode: '123456'
+      }
+    });
+    assert.equal(registerRes.status, 200);
+
+    for (let index = 0; index < 5; index += 1) {
+      const wrong = await isolatedApi('/api/auth/login', {
+        method: 'POST',
+        body: {
+          phone,
+          password: 'Wrong@123456'
+        }
+      });
+      assert.equal(wrong.status, 401);
+      assert.equal(wrong.json.message, '手机号或密码错误');
+    }
+
+    const locked = await isolatedApi('/api/auth/login', {
+      method: 'POST',
+      body: {
+        phone,
+        password: 'User@123456'
+      }
+    });
+    assert.equal(locked.status, 429);
+    assert.equal(locked.json.message, '账号暂时不可登录，请稍后再试');
+  });
+});
+
+test('production mode rejects all development mock authentication and payment entrypoints', async () => {
+  await withIsolatedServer({ allowMockFeatures: false }, async (isolatedApi) => {
+    const mockWechat = await isolatedApi('/api/auth/wechat-login', {
+      method: 'POST',
+      body: { code: 'mock_release_login', devOpenid: 'mock_release_openid' }
+    });
+    assert.equal(mockWechat.status, 403);
+
+    const mockRegister = await isolatedApi('/api/auth/register', {
+      method: 'POST',
+      body: {
+        phone: '13900008883',
+        password: 'User@123456',
+        confirmPassword: 'User@123456',
+        smsCode: '123456'
+      }
+    });
+    assert.equal(mockRegister.status, 503);
+
+    const loginRes = await isolatedApi('/api/auth/login', {
+      method: 'POST',
+      body: { phone: '13800138001', password: 'Parent@123456' }
+    });
+    assert.equal(loginRes.status, 200);
+
+    const mockPay = await isolatedApi('/api/unlock/teacher/1/mock-pay', {
+      method: 'POST',
+      token: loginRes.json.data.token
+    });
+    assert.equal(mockPay.status, 403);
+  });
+});
+
+test('parent can publish requirement only after agreeing contact unlock visibility', async () => {
+  const parentToken = await login('mock_requirement_parent', '13900002001');
+  await completeParentProfile(parentToken, '13900002001');
+
+  const rejected = await api('/api/requirements', {
+    method: 'POST',
+    token: parentToken,
+    body: {
+      parentDisplayName: '陈妈妈',
+      district: '金水区',
+      childGrade: '初二',
+      subject: '数学',
+      expectedTime: '周六下午',
+      budgetPrice: 90,
+      studySituation: '孩子基础一般，希望先巩固课本基础。',
+      teacherRequirement: '希望老师耐心，有初中数学辅导经验。',
+      contactVisibleConsent: false
+    }
+  });
+  assert.equal(rejected.status, 400);
+  assert.match(rejected.json.message, /同意/);
+
+  const created = await api('/api/requirements', {
+    method: 'POST',
+    token: parentToken,
+    body: {
+      parentDisplayName: '陈妈妈',
+      district: '金水区',
+      childGrade: '初二',
+      subject: '数学',
+      expectedTime: '周六下午',
+      budgetPrice: 90,
+      studySituation: '孩子基础一般，希望先巩固课本基础。',
+      teacherRequirement: '希望老师耐心，有初中数学辅导经验。',
+      contactVisibleConsent: true
+    }
+  });
+  assert.equal(created.status, 200);
+  assert.equal(created.json.data.requirement.parentDisplayName, '陈妈妈');
+  assert.equal(created.json.data.requirement.unlocked, false);
+  assert.equal(created.json.data.requirement.contactPhone, '');
+
+  const listed = await api('/api/requirements?subject=数学&area=金水区');
+  assert.equal(listed.status, 200);
+  assert.equal(listed.json.data.list.some((item) => item.id === created.json.data.requirement.id), true);
 });
 
 test('complaint can be submitted and handled by admin', async () => {
@@ -486,6 +874,19 @@ test('complaint can be submitted and handled by admin', async () => {
     }
   });
   const orderId = order.json.data.order.id;
+
+  const temporaryImage = await api('/api/complaints', {
+    method: 'POST',
+    token: parentToken,
+    body: {
+      orderId,
+      reason: '态度问题',
+      description: '不应接受微信临时图片路径',
+      images: ['/tmp/wechat-evidence.jpg']
+    }
+  });
+  assert.equal(temporaryImage.status, 400);
+  assert.equal(temporaryImage.json.message, '图片证据必须先上传成功');
 
   const complaint = await api('/api/complaints', {
     method: 'POST',
@@ -554,7 +955,8 @@ test('admin phone accounts can login to dashboard', async () => {
     method: 'POST',
     body: { phone: '18800000001', password: 'Admin@123456' }
   });
-  assert.equal(miniProgramLogin.status, 404);
+  assert.equal(miniProgramLogin.status, 403);
+  assert.equal(miniProgramLogin.json.message, '这是后台管理员账号，请打开后台管理端登录');
 });
 
 test('admin-api manages teacher approval, privacy, configs and recommendation', async () => {
@@ -742,6 +1144,13 @@ test('approved teacher unlocks parent requirement and records contact log', asyn
   assert.equal(contactLog.status, 200);
   assert.equal(contactLog.json.data.log.targetType, 'parent_requirement');
   assert.equal(contactLog.json.data.log.contactStatus, 'contacted');
+
+  const contactLogs = await api('/api/contact-logs', { token: teacherToken });
+  assert.equal(contactLogs.status, 200);
+  const firstLog = contactLogs.json.data.list[0];
+  assert.equal(firstLog.targetName, before.json.data.requirement.parentDisplayName);
+  assert.equal(firstLog.targetSummary, `${before.json.data.requirement.childGrade}｜${before.json.data.requirement.subject}｜${before.json.data.requirement.district}`);
+  assert.equal(firstLog.note, '已电话沟通，准备约课');
 
   const records = await api('/api/unlock-records', { token: teacherToken });
   assert.equal(records.status, 200);

@@ -1,7 +1,12 @@
 <view class="page requirements-page">
   <view class="requirement-filter">
-    <view class="filter-title">家长需求</view>
-    <view class="filter-subtitle">老师可查看基础需求，审核通过后可付费解锁联系方式。</view>
+    <view class="filter-head">
+      <view>
+        <view class="filter-title">家长需求</view>
+        <view class="filter-subtitle">老师可查看基础需求，审核通过后可付费解锁联系方式。</view>
+      </view>
+      <button wx:if="{{canPublish}}" class="publish-btn" bindtap="publishRequirement">发布需求</button>
+    </view>
     <view class="search-panel">
       <text class="search-icon">⌕</text>
       <input class="search-input" placeholder="搜索科目、区域、年级" value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="search" />

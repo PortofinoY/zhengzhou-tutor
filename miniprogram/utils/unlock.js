@@ -41,8 +41,8 @@ function buildUnlockPlan(targetType, targetId) {
 }
 
 function recordDetailUrl(record = {}) {
-  if (record.targetType === 'teacher_contact') return `/pages/teacher-detail/teacher-detail?id=${record.targetId}`;
-  if (record.targetType === 'parent_contact') return `/pages/requirement-detail/requirement-detail?id=${record.targetId}`;
+  if (record.targetType === 'teacher_contact' || record.targetType === 'teacher') return `/pages/teacher-detail/teacher-detail?id=${record.targetId}`;
+  if (record.targetType === 'parent_contact' || record.targetType === 'parent_requirement') return `/pages/requirement-detail/requirement-detail?id=${record.targetId}`;
   return '';
 }
 

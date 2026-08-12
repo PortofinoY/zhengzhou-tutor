@@ -7,7 +7,10 @@ Page({
   data: {
     agreed: false,
     loading: false,
-    redirect: ''
+    accountLoading: false,
+    redirect: '',
+    phone: '',
+    password: ''
   },
 
   onLoad(options) {
@@ -18,12 +21,20 @@ Page({
     this.setData({ agreed: !this.data.agreed });
   },
 
+  onInput(event) {
+    this.setData({ [event.currentTarget.dataset.field]: event.detail.value });
+  },
+
   goAgreement() {
     wx.navigateTo({ url: '/pages/agreement/agreement' });
   },
 
   goPrivacy() {
     wx.navigateTo({ url: '/pages/privacy/privacy' });
+  },
+
+  goRegister() {
+    wx.navigateTo({ url: `/pages/register/register?redirect=${encodeURIComponent(this.data.redirect || '/pages/index/index')}` });
   },
 
   getWechatLoginCode() {
@@ -72,6 +83,37 @@ Page({
       showError(error);
     } finally {
       this.setData({ loading: false });
+    }
+  },
+
+  async accountLogin() {
+    if (!this.data.agreed) {
+      wx.showToast({ title: '请先同意协议和隐私政策', icon: 'none' });
+      return;
+    }
+    const phone = String(this.data.phone || '').trim();
+    const password = String(this.data.password || '');
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      wx.showToast({ title: '请输入正确的手机号', icon: 'none' });
+      return;
+    }
+    if (!password) {
+      wx.showToast({ title: '请输入密码', icon: 'none' });
+      return;
+    }
+
+    this.setData({ accountLoading: true });
+    try {
+      const data = await request('/auth/login', {
+        method: 'POST',
+        data: { phone, password }
+      });
+      wx.showToast({ title: '登录成功', icon: 'success' });
+      setTimeout(() => redirectAfterAuth(data, this.data.redirect), 350);
+    } catch (error) {
+      showError(error);
+    } finally {
+      this.setData({ accountLoading: false });
     }
   }
 });

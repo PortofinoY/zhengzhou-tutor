@@ -1,0 +1,30 @@
+<view class="page demo-page">
+  <view wx:if="{{enabled}}" class="demo-card intro-card">
+    <view class="eyebrow">演示模式</view>
+    <view class="page-title">投资人演示</view>
+    <view class="page-desc">本地展示核心流程，不会访问真实账号、订单或支付。</view>
+    <view wx:if="{{active}}" class="active-status">当前：{{currentRoleText}} · {{currentUser.nickname}}</view>
+  </view>
+
+  <view wx:if="{{enabled}}" class="role-card parent-card tap-feedback" data-role="parent" bindtap="enter">
+    <view class="role-title">家长用户</view>
+    <view class="role-desc">体验找老师、预约、订单、评价与联系方式解锁流程。</view>
+    <button class="role-button parent-button">进入家长演示</button>
+  </view>
+
+  <view wx:if="{{enabled}}" class="role-card teacher-card tap-feedback" data-role="teacher" bindtap="enter">
+    <view class="role-title">老师用户</view>
+    <view class="role-desc">体验找需求、接单、服务管理、评价与联系方式解锁流程。</view>
+    <button class="role-button teacher-button">进入老师演示</button>
+  </view>
+
+  <view wx:if="{{active}}" class="demo-actions">
+    <button class="demo-action secondary" bindtap="resetDemo">重置演示数据</button>
+    <button class="demo-action danger" bindtap="exitDemo">退出演示模式</button>
+  </view>
+
+  <view wx:else class="demo-card unavailable-card">
+    <view class="page-title">演示模式未开启</view>
+    <view class="page-desc">该入口仅在本地开发环境可用。</view>
+  </view>
+</view>

@@ -10,10 +10,13 @@ Page({
     filter: {
       subject: '',
       area: ''
-    }
+    },
+    canPublish: false
   },
 
   onShow() {
+    const user = wx.getStorageSync('user');
+    this.setData({ canPublish: Boolean(user && user.currentRole === 'parent') });
     this.loadRequirements();
   },
 
@@ -47,5 +50,9 @@ Page({
 
   openRequirement(event) {
     wx.navigateTo({ url: `/pages/requirement-detail/requirement-detail?id=${event.currentTarget.dataset.id}` });
+  },
+
+  publishRequirement() {
+    wx.navigateTo({ url: '/pages/requirement-publish/requirement-publish' });
   }
 });

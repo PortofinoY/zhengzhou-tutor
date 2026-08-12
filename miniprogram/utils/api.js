@@ -1,9 +1,14 @@
-const { API_BASE_URL } = require('./config');
+const { API_BASE_URL, ENV_VERSION } = require('./config');
 const { messageFromResponse } = require('./request');
 const localTest = require('./local-test');
 
 function request(options) {
   if (localTest.isLocalTestMode()) return localTest.handleRequest(options);
+  if (!API_BASE_URL) {
+    const error = new Error(`${ENV_VERSION === 'release' ? '正式版' : '体验版'}未配置后端服务地址`);
+    wx.showToast({ title: error.message, icon: 'none' });
+    return Promise.reject(error);
+  }
 
   const token = wx.getStorageSync('token');
   return new Promise((resolve, reject) => {

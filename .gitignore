@@ -9,6 +9,11 @@ server/data/*.bak.json
 .env
 .env.*
 !.env.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
 project.private.config.json
 miniprogram/project.private.config.json
 miniprogram/private.*.json
@@ -24,3 +29,7 @@ miniprogram/private.*.json
 npm-debug.log*
 dist/
 coverage/
+
+# User-uploaded media
+server/public/uploads/*
+!server/public/uploads/.gitkeep

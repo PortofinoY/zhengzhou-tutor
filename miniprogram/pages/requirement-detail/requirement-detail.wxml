@@ -13,6 +13,7 @@
 
   <view class="section-title">对老师的要求</view>
   <view class="card text-block">{{requirement.teacherRequirement}}</view>
+  <button wx:if="{{canEditDemo}}" class="btn btn-ghost" bindtap="editRequirement">编辑需求</button>
 
   <view class="section-title">联系方式</view>
   <view wx:if="{{!requirement.unlocked}}" class="card lock-card">
@@ -34,5 +35,6 @@
     </view>
     <view class="muted contact-note">请遵守平台规则沟通，不公开孩子姓名、学校、班级和详细住址。</view>
     <button class="btn btn-ghost contact-log-btn" loading="{{contactLogging}}" disabled="{{contactLogging}}" bindtap="recordContact">记录已联系</button>
+    <button wx:if="{{isTeacherDemo}}" class="btn btn-primary contact-log-btn" loading="{{accepting}}" disabled="{{accepting}}" bindtap="acceptRequirement">确认接单</button>
   </view>
 </view>

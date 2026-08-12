@@ -1,16 +1,34 @@
-// 开发者工具模拟器默认连接本机 Node 后端。真机调试时请改为电脑局域网 IP，例如 http://192.168.x.x:3000。
-const API_BASE_URL = 'http://127.0.0.1:3000';
+const { detectEnvVersion, buildEnvironmentConfig, LOCAL_API_BASE_URL } = require('./env');
+
+// 发布前分别填写已在微信公众平台登记的 HTTPS 合法域名；不要提交密钥或本地地址。
+const REMOTE_API_BASE_URLS = {
+  trial: '',
+  release: ''
+};
 const LAN_API_BASE_URL = 'http://172.20.10.2:3000';
-// touristappid / 游客模式下微信登录、手机号授权会触发微信 SDK 限制；开发阶段使用 mock 能力跑通业务流程。
-const DEVELOPMENT_MOCK_WECHAT_API = true;
-// 仅在 DEVELOPMENT_MOCK_WECHAT_API 为 true 时生效，用稳定 mock openid 验证“老用户再次登录不重复选身份”。
-const DEVELOPMENT_MOCK_OPENID = true;
-const ADMIN_WEB_ALLOWED_ORIGINS = [API_BASE_URL, LAN_API_BASE_URL];
+// 现场演示结束后将此项设为 false，即可在开发环境隐藏并关闭演示模式。
+const DEMO_MODE_SWITCH = true;
+const ENV_VERSION = detectEnvVersion();
+const REMOTE_API_BASE_URL = REMOTE_API_BASE_URLS[ENV_VERSION] || '';
+const runtimeConfig = buildEnvironmentConfig(ENV_VERSION, REMOTE_API_BASE_URL);
+const API_BASE_URL = runtimeConfig.apiBaseUrl;
+const DEVELOPMENT_MOCK_WECHAT_API = runtimeConfig.allowMockFeatures;
+const DEVELOPMENT_MOCK_OPENID = runtimeConfig.allowMockFeatures;
+const SHOW_DEV_TOOLS = runtimeConfig.showDevTools;
+const DEMO_MODE_ENABLED = runtimeConfig.allowDemoMode && DEMO_MODE_SWITCH;
+const ADMIN_WEB_ALLOWED_ORIGINS = [API_BASE_URL, LAN_API_BASE_URL].filter(Boolean);
 
 module.exports = {
+  ENV_VERSION,
+  LOCAL_API_BASE_URL,
+  REMOTE_API_BASE_URLS,
+  REMOTE_API_BASE_URL,
   API_BASE_URL,
   LAN_API_BASE_URL,
   DEVELOPMENT_MOCK_WECHAT_API,
   DEVELOPMENT_MOCK_OPENID,
+  SHOW_DEV_TOOLS,
+  DEMO_MODE_SWITCH,
+  DEMO_MODE_ENABLED,
   ADMIN_WEB_ALLOWED_ORIGINS
 };

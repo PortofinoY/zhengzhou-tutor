@@ -2,14 +2,23 @@
   "name": "zz-tutor-mvp",
   "version": "1.0.0",
   "private": true,
-  "description": "郑州大学生上门家教小程序 MVP：微信小程序、Node 后端、JSON 持久化、后台管理端。",
+  "description": "郑州上门家教小程序 MVP：微信小程序、Node 后端、JSON/MySQL 数据适配与后台管理端。",
   "type": "commonjs",
   "scripts": {
     "start": "node server/src/index.js",
-    "dev": "node server/src/index.js",
+    "dev": "NODE_ENV=development ALLOW_MOCK_FEATURES=true SEED_DEMO_DATA=true node server/src/index.js",
+    "init-admin": "node scripts/init-admin.js",
+    "db:migrate": "node scripts/migrate-mysql.js",
+    "db:import-json": "node scripts/import-json-to-mysql.js",
+    "db:verify": "node scripts/verify-mysql-data.js",
     "test": "node --test server/test/*.test.js"
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "busboy": "^1.6.0",
+    "mysql2": "^3.23.2"
   }
 }

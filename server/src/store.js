@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { hashPassword } = require('./security');
+const { hashPassword, verifyPassword, passwordHashNeedsUpgrade } = require('./security');
 const {
   ACCOUNT_STATUS,
   ADMIN_STATUS,
@@ -13,6 +13,28 @@ const {
 } = require('./constants');
 
 const DEFAULT_DB_PATH = path.join(__dirname, '..', 'data', 'db.json');
+const DATA_TABLES = [
+  'users',
+  'parentProfiles',
+  'teachers',
+  'teacherSubjects',
+  'teacherCertifications',
+  'orders',
+  'orderStatusLogs',
+  'reviews',
+  'complaints',
+  'parentRequirements',
+  'unlockRecords',
+  'paymentOrders',
+  'contactLogs',
+  'phoneVerifications',
+  'admins',
+  'adminLoginTickets',
+  'tokenRevocations',
+  'operationLogs',
+  'frontendConfigs',
+  'uploadedFiles'
+];
 
 function now() {
   return new Date().toISOString();
@@ -198,6 +220,7 @@ function seedData() {
         parentProfiles: 3,
         admins: 4,
         adminLoginTickets: 1,
+        tokenRevocations: 1,
         operationLogs: 1,
         frontendConfigs: frontendConfigs.length + 1,
         phoneVerifications: 1
@@ -665,21 +688,45 @@ function seedData() {
       }
     ],
     adminLoginTickets: [],
+    tokenRevocations: [],
     operationLogs: [],
     frontendConfigs
   };
 }
 
+let seedTemplate;
+
+function freshSeedData() {
+  if (!seedTemplate) seedTemplate = seedData();
+  return deepClone(seedTemplate);
+}
+
+function emptyData() {
+  const data = {
+    meta: {
+      nextIds: Object.fromEntries(DATA_TABLES.map((table) => [table, 1]))
+    }
+  };
+  DATA_TABLES.forEach((table) => {
+    data[table] = [];
+  });
+  return data;
+}
+
 class Store {
-  constructor(dbPath = process.env.TUTOR_DB_PATH || DEFAULT_DB_PATH) {
+  constructor(dbPath = process.env.TUTOR_DB_PATH || DEFAULT_DB_PATH, options = {}) {
     this.dbPath = dbPath;
+    const environment = options.environment || process.env;
+    const isProduction = String(environment.NODE_ENV || '').trim().toLowerCase() === 'production';
+    this.seedDemoData = !isProduction && options.seedDemoData === true;
     this.data = null;
   }
 
   load() {
     fs.mkdirSync(path.dirname(this.dbPath), { recursive: true });
     if (!fs.existsSync(this.dbPath)) {
-      this.data = seedData();
+      this.data = this.seedDemoData ? freshSeedData() : emptyData();
+      this.ensureShape();
       this.save();
       return this.data;
     }
@@ -689,26 +736,28 @@ class Store {
   }
 
   ensureShape() {
-    const fresh = seedData();
+    const fresh = this.seedDemoData ? freshSeedData() : emptyData();
     this.data.meta = this.data.meta || fresh.meta;
-    Object.keys(fresh).forEach((key) => {
-      if (key !== 'meta' && !Array.isArray(this.data[key])) this.data[key] = [];
+    DATA_TABLES.forEach((table) => {
+      if (!Array.isArray(this.data[table])) this.data[table] = [];
     });
     this.data.meta.nextIds = this.data.meta.nextIds || {};
-    Object.keys(fresh.meta.nextIds).forEach((table) => {
+    DATA_TABLES.forEach((table) => {
       if (!this.data.meta.nextIds[table]) {
         const rows = this.data[table] || [];
         this.data.meta.nextIds[table] = rows.reduce((max, row) => Math.max(max, row.id || 0), 0) + 1;
       }
     });
-    this.ensureDefaultAdmin();
-    this.ensureFrontendConfigs();
     this.ensureTeacherFlags();
     this.ensureUserProfiles();
-    this.ensureDemoAccounts();
-    this.ensureTestUsers();
-    this.ensureRecommendedTeacherSamples();
-    this.ensureParentRequirements();
+    if (this.seedDemoData) {
+      this.ensureDefaultAdmin();
+      this.ensureFrontendConfigs();
+      this.ensureDemoAccounts();
+      this.ensureTestUsers();
+      this.ensureRecommendedTeacherSamples();
+      this.ensureParentRequirements();
+    }
   }
 
   ensureDefaultAdmin() {
@@ -735,7 +784,13 @@ class Store {
         admins.push(admin);
       }
 
-      if (account.username === 'admin' && admin.passwordHash === hashPassword('Admin@2026!')) admin.passwordHash = hashPassword(account.password);
+      if (
+        account.username === 'admin'
+        && passwordHashNeedsUpgrade(admin.passwordHash)
+        && verifyPassword('Admin@2026!', admin.passwordHash)
+      ) {
+        admin.passwordHash = hashPassword(account.password);
+      }
       admin.username = admin.username || account.username;
       admin.phone = admin.phone !== undefined ? admin.phone : account.phone;
       admin.role = admin.role || account.role;
@@ -781,8 +836,12 @@ class Store {
       if (teacher.isRecommended === undefined) teacher.isRecommended = recommendedIds.includes(Number(teacher.id));
       if (!teacher.bannedReason) teacher.bannedReason = '';
       if (!Array.isArray(teacher.suitableTags)) teacher.suitableTags = [];
-      if (teacher.suitableTags.length === 0 && Number(teacher.id) === 1) teacher.suitableTags = ['适合基础薄弱', '适合考前复习', '适合学习习惯培养'];
-      if (teacher.suitableTags.length === 0 && Number(teacher.id) === 2) teacher.suitableTags = ['适合作业辅导', '适合低年级陪伴式学习'];
+      if (this.seedDemoData && teacher.suitableTags.length === 0 && Number(teacher.id) === 1) {
+        teacher.suitableTags = ['适合基础薄弱', '适合考前复习', '适合学习习惯培养'];
+      }
+      if (this.seedDemoData && teacher.suitableTags.length === 0 && Number(teacher.id) === 2) {
+        teacher.suitableTags = ['适合作业辅导', '适合低年级陪伴式学习'];
+      }
       teacher.gaokaoScore = teacher.gaokaoScore || '';
       teacher.englishLevel = teacher.englishLevel || '';
       teacher.teacherCertificate = teacher.teacherCertificate || '';
@@ -1173,7 +1232,7 @@ class Store {
   }
 
   reset() {
-    this.data = seedData();
+    this.data = this.seedDemoData ? freshSeedData() : emptyData();
     this.save();
   }
 
@@ -1284,8 +1343,10 @@ class Store {
 
 module.exports = {
   Store,
+  DATA_TABLES,
   now,
   deepClone,
   seedData,
+  emptyData,
   DEFAULT_DB_PATH
 };

@@ -1,4 +1,4 @@
-const { request, showError } = require('../../utils/request');
+const { request, uploadFile, showError } = require('../../utils/request');
 const { requireLogin, requirePhone, redirectAfterAuth } = require('../../utils/auth');
 const { subjects, areas, schools, suitableTags } = require('../../utils/constants');
 
@@ -19,6 +19,8 @@ Page({
     suitableTagOptions: suitableTags.map((label) => ({ label, selected: false })),
     profileCompleteness: 0,
     phoneMasked: '',
+    avatarUploading: false,
+    certificationUploading: false,
     form: {
       realName: '',
       gender: '',
@@ -149,10 +151,8 @@ Page({
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
-      success: (res) => {
-        const form = { ...this.data.form, avatar: res.tempFiles[0].tempFilePath };
-        this.setFormState(form);
-      }
+      sizeType: ['compressed'],
+      success: (res) => this.uploadSelectedImage(res.tempFiles[0], 'avatar', 'avatar')
     });
   },
 
@@ -160,14 +160,41 @@ Page({
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
-      success: (res) => {
-        const form = { ...this.data.form, certificationImage: res.tempFiles[0].tempFilePath };
-        this.setFormState(form);
-      }
+      sizeType: ['compressed'],
+      success: (res) => this.uploadSelectedImage(res.tempFiles[0], 'student_card', 'certificationImage')
     });
   },
 
+  async uploadSelectedImage(file, purpose, formField) {
+    if (!file || !file.tempFilePath) return;
+    if (Number(file.size || 0) > 10 * 1024 * 1024) {
+      wx.showToast({ title: '图片大小不能超过10MB', icon: 'none' });
+      return;
+    }
+
+    const loadingField = formField === 'avatar' ? 'avatarUploading' : 'certificationUploading';
+    this.setData({ [loadingField]: true });
+    wx.showLoading({ title: '上传中' });
+    let uploadFailure = null;
+    try {
+      const uploaded = await uploadFile(file.tempFilePath, purpose);
+      const form = { ...this.data.form, [formField]: uploaded.url };
+      this.setFormState(form);
+    } catch (error) {
+      uploadFailure = error;
+    } finally {
+      wx.hideLoading();
+      this.setData({ [loadingField]: false });
+    }
+    if (uploadFailure) showError(uploadFailure);
+    else wx.showToast({ title: '上传成功', icon: 'success' });
+  },
+
   async submit() {
+    if (this.data.avatarUploading || this.data.certificationUploading) {
+      wx.showToast({ title: '请等待图片上传完成', icon: 'none' });
+      return;
+    }
     try {
       const data = await request('/teacher/profile', {
         method: 'POST',

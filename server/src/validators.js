@@ -153,6 +153,12 @@ function validateComplaintPayload(body) {
   if (body.images && (!Array.isArray(body.images) || body.images.length > 6)) {
     throw createError(400, '图片证据最多上传 6 张');
   }
+  if (Array.isArray(body.images)) {
+    const uploadedImagePattern = /^https?:\/\/[^/\s]+\/uploads\/complaint_evidence-\d+-[a-f0-9]{16}\.(?:jpg|png)$/i;
+    if (body.images.some((imageUrl) => !uploadedImagePattern.test(String(imageUrl || '')))) {
+      throw createError(400, '图片证据必须先上传成功');
+    }
+  }
 }
 
 function validateRequirementPayload(body) {
@@ -171,6 +177,7 @@ function validateRequirementPayload(body) {
   const price = Number(body.budgetPrice);
   if (!Number.isInteger(price) || price <= 0) throw createError(400, '预算课时费必须为正整数');
   if (body.contactPhone) assertChinaPhone(body.contactPhone, '联系方式手机号格式不正确');
+  if (body.contactVisibleConsent !== true) throw createError(400, '请同意老师付费解锁后展示联系方式');
 }
 
 function validateContactLogPayload(body) {

@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <dir>/System/Library/Fonts</dir>
+  <dir>/System/Library/Fonts/Supplemental</dir>
+  <dir>/Library/Fonts</dir>
+  <dir prefix="xdg">fonts</dir>
+  <cachedir>/private/tmp/codex-fontconfig-cache</cachedir>
+
+  <match target="pattern">
+    <test qual="any" name="family">
+      <string>sans-serif</string>
+    </test>
+    <edit name="family" mode="prepend" binding="strong">
+      <string>Arial Unicode MS</string>
+      <string>Hiragino Sans GB</string>
+      <string>Heiti SC</string>
+    </edit>
+  </match>
+
+  <match target="pattern">
+    <test qual="any" name="family">
+      <string>serif</string>
+    </test>
+    <edit name="family" mode="prepend" binding="strong">
+      <string>Songti SC</string>
+      <string>Arial Unicode MS</string>
+    </edit>
+  </match>
+</fontconfig>

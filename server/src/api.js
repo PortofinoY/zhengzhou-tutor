@@ -1,5 +1,14 @@
 const { URL } = require('url');
-const { signToken, verifyToken, hashPassword, randomCode, randomTicket } = require('./security');
+const {
+  signToken,
+  verifyToken,
+  hashPassword,
+  verifyPassword,
+  passwordHashNeedsUpgrade,
+  hashToken,
+  randomCode,
+  randomTicket
+} = require('./security');
 const {
   ROLES,
   ACCOUNT_STATUS,
@@ -32,6 +41,8 @@ const {
 } = require('./validators');
 const { now } = require('./store');
 const { createWechatClient } = require('./wechat');
+const { parseImageUpload, persistImageUpload } = require('./upload');
+const { resolveAllowMockFeatures } = require('./runtime-config');
 
 const FINAL_ORDER_STATUS = [
   ORDER_STATUS.COMPLETED,
@@ -120,6 +131,11 @@ class TutorApi {
   constructor(store, options = {}) {
     this.store = store;
     this.wechatClient = options.wechatClient || createWechatClient();
+    this.uploadDir = options.uploadDir;
+    this.allowMockFeatures = resolveAllowMockFeatures(
+      options.environment || process.env,
+      options.allowMockFeatures
+    );
   }
 
   async handle(req, res) {
@@ -128,14 +144,35 @@ class TutorApi {
       return;
     }
 
+    let requestTransactionStarted = false;
     try {
-      this.store.load();
+      if (typeof this.store.beginRequest === 'function') {
+        await this.store.beginRequest();
+        requestTransactionStarted = true;
+      } else {
+        await this.store.load();
+      }
       const url = new URL(req.url, 'http://127.0.0.1');
       const segments = url.pathname.split('/').filter(Boolean);
-      const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req) : {};
+      const isImageUpload = req.method === 'POST' && url.pathname === '/api/uploads';
+      if (isImageUpload) this.requireUser(req);
+      const body = isImageUpload
+        ? await parseImageUpload(req)
+        : (['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req) : {});
       const data = await this.route(req, req.method, segments, url.searchParams, body);
+      if (requestTransactionStarted && typeof this.store.commitRequest === 'function') {
+        await this.store.commitRequest();
+        requestTransactionStarted = false;
+      }
       sendJson(res, 200, { code: 0, message: 'ok', data });
     } catch (error) {
+      if (requestTransactionStarted && typeof this.store.rollbackRequest === 'function') {
+        try {
+          await this.store.rollbackRequest();
+        } catch (rollbackError) {
+          error.rollbackError = rollbackError;
+        }
+      }
       const status = error.status || 500;
       sendJson(res, status, {
         code: status,
@@ -150,6 +187,7 @@ class TutorApi {
     if (segments[0] !== 'api') throw createError(404, '接口不存在');
 
     if (method === 'GET' && segments[1] === 'health') return { status: 'running', time: now() };
+    if (method === 'POST' && segments[1] === 'uploads') return this.uploadImage(req, body);
     if (method === 'GET' && (segments[1] === 'config' || segments[1] === 'dictionaries')) return this.config();
     if (method === 'GET' && segments[1] === 'configs' && segments[2] === 'public') return this.publicConfigs();
 
@@ -228,6 +266,9 @@ class TutorApi {
 
   authRoutes(req, method, parts, body) {
     if (method === 'POST' && parts[0] === 'wechat-login') return this.wechatLogin(body);
+    if (method === 'POST' && parts[0] === 'register') return this.register(body);
+    if (method === 'POST' && parts[0] === 'login') return this.passwordLogin(body);
+    if (method === 'POST' && parts[0] === 'logout') return this.userLogout(req);
     if (method === 'POST' && parts[0] === 'select-role') return this.selectRole(req, body);
     if (method === 'POST' && parts[0] === 'switch-role') return this.switchRole(req, body);
     if (method === 'POST' && parts[0] === 'bind-phone') return this.bindPhone(req, body);
@@ -306,14 +347,26 @@ class TutorApi {
     if (parts[0] === 'teacher') {
       const teacherId = Number(parts[1]);
       if (!teacherId) throw createError(404, '解锁接口不存在');
-      if (method === 'POST' && parts[2] === 'create-order') return this.createTeacherUnlockOrder(req, teacherId);
-      if (method === 'POST' && parts[2] === 'mock-pay') return this.mockPayTeacherUnlock(req, teacherId);
+      if (method === 'POST' && parts[2] === 'create-order') {
+        if (!this.allowMockFeatures) throw createError(503, '正式环境微信支付尚未配置');
+        return this.createTeacherUnlockOrder(req, teacherId);
+      }
+      if (method === 'POST' && parts[2] === 'mock-pay') {
+        if (!this.allowMockFeatures) throw createError(403, '正式环境禁止使用 mock 支付');
+        return this.mockPayTeacherUnlock(req, teacherId);
+      }
     }
     if (parts[0] === 'requirement') {
       const requirementId = Number(parts[1]);
       if (!requirementId) throw createError(404, '解锁接口不存在');
-      if (method === 'POST' && parts[2] === 'create-order') return this.createRequirementUnlockOrder(req, requirementId);
-      if (method === 'POST' && parts[2] === 'mock-pay') return this.mockPayRequirementUnlock(req, requirementId);
+      if (method === 'POST' && parts[2] === 'create-order') {
+        if (!this.allowMockFeatures) throw createError(503, '正式环境微信支付尚未配置');
+        return this.createRequirementUnlockOrder(req, requirementId);
+      }
+      if (method === 'POST' && parts[2] === 'mock-pay') {
+        if (!this.allowMockFeatures) throw createError(403, '正式环境禁止使用 mock 支付');
+        return this.mockPayRequirementUnlock(req, requirementId);
+      }
     }
     throw createError(404, '解锁接口不存在');
   }
@@ -440,6 +493,7 @@ class TutorApi {
       if (method === 'POST' && parts[1] === 'exchange-ticket') return this.exchangeAdminTicket(body);
       const admin = this.requireAdmin(req);
       if (method === 'POST' && parts[1] === 'logout') {
+        this.revokeCurrentToken(req, 'admin', admin.id);
         this.adminOperation(admin, 'admin_logout', 'admin', admin.id, '管理员退出登录');
         return { success: true };
       }
@@ -490,7 +544,9 @@ class TutorApi {
   }
 
   requireUser(req) {
-    const payload = verifyToken(getToken(req));
+    const token = getToken(req);
+    const payload = verifyToken(token);
+    if (payload && this.isTokenRevoked(token)) throw createError(401, '登录已失效，请重新登录');
     if (!payload || payload.type !== 'user') throw createError(401, '请先登录');
     const user = this.store.findById('users', payload.userId);
     if (!user) throw createError(401, '登录已失效，请重新登录');
@@ -498,7 +554,9 @@ class TutorApi {
   }
 
   requireAdmin(req) {
-    const payload = verifyToken(getToken(req));
+    const token = getToken(req);
+    const payload = verifyToken(token);
+    if (payload && this.isTokenRevoked(token)) throw createError(401, '管理员登录已失效');
     if (!payload) throw createError(401, '管理员未登录');
     if (payload.type !== 'admin') throw createError(403, '无权访问后台接口');
     const admin = this.store.findById('admins', payload.adminId);
@@ -515,6 +573,36 @@ class TutorApi {
     }
     if (status !== ADMIN_STATUS.NORMAL || admin.accountStatus !== ACCOUNT_STATUS.NORMAL) throw createError(403, '管理员账号不可用');
     return admin;
+  }
+
+  isTokenRevoked(token) {
+    const tokenHash = hashToken(token);
+    return this.store.table('tokenRevocations').some((item) => item.tokenHash === tokenHash);
+  }
+
+  revokeCurrentToken(req, tokenType, subjectId) {
+    const token = getToken(req);
+    const payload = verifyToken(token);
+    if (!payload) throw createError(401, tokenType === 'admin' ? '管理员未登录' : '请先登录');
+
+    const revocations = this.store.table('tokenRevocations');
+    const currentTime = Date.now();
+    for (let index = revocations.length - 1; index >= 0; index -= 1) {
+      if (Date.parse(revocations[index].expiredAt) <= currentTime) revocations.splice(index, 1);
+    }
+
+    const tokenHash = hashToken(token);
+    if (!revocations.some((item) => item.tokenHash === tokenHash)) {
+      revocations.push({
+        id: this.store.nextId('tokenRevocations'),
+        tokenHash,
+        tokenType,
+        subjectId,
+        expiredAt: new Date(payload.exp * 1000).toISOString(),
+        revokedAt: now()
+      });
+      this.store.save();
+    }
   }
 
   adminInfo(admin) {
@@ -722,6 +810,7 @@ class TutorApi {
   }
 
   register(body) {
+    if (!this.allowMockFeatures) throw createError(503, '正式环境短信验证码服务尚未配置');
     validateRegisterPayload(body);
     const phone = String(body.phone).trim();
     if (this.store.table('users').some((item) => item.phone === phone || item.accountUsername === phone)) {
@@ -752,16 +841,52 @@ class TutorApi {
     return this.authPayload(user, { isNewUser: true });
   }
 
+  userLogout(req) {
+    const user = this.requireUser(req);
+    this.revokeCurrentToken(req, 'user', user.id);
+    return { success: true };
+  }
+
+  uploadImage(req, upload) {
+    const user = this.requireUser(req);
+    const stored = persistImageUpload(upload, this.uploadDir);
+    const host = req.headers.host || '127.0.0.1:3000';
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const publicUrl = `${protocol}://${host}/uploads/${stored.filename}`;
+    const timestamp = now();
+    this.store.table('uploadedFiles').push({
+      id: this.store.nextId('uploadedFiles'),
+      ownerUserId: user.id,
+      purpose: upload.purpose,
+      storageProvider: 'local',
+      storageKey: stored.filename,
+      publicUrl,
+      mimeType: upload.mimeType,
+      sizeBytes: stored.size,
+      status: 'active',
+      createdAt: timestamp,
+      updatedAt: timestamp
+    });
+    this.store.save();
+    return {
+      url: publicUrl,
+      purpose: upload.purpose,
+      mimeType: upload.mimeType,
+      size: stored.size
+    };
+  }
+
   passwordLogin(body) {
     validatePasswordLoginPayload(body);
     const phone = String(body.phone).trim();
     const user = this.store.table('users').find((item) => item.phone === phone || item.accountUsername === phone);
     const admin = this.store.table('admins').find((item) => item.username === phone || item.phone === phone);
-    if (!user && admin && admin.passwordHash === hashPassword(body.password)) {
+    if (!user && admin && verifyPassword(body.password, admin.passwordHash)) {
       throw createError(403, '这是后台管理员账号，请打开后台管理端登录');
     }
     this.ensureLoginAllowed(user);
-    if (user.accountPasswordHash !== hashPassword(body.password)) this.recordPasswordFailure(user);
+    if (!verifyPassword(body.password, user.accountPasswordHash)) this.recordPasswordFailure(user);
+    if (passwordHashNeedsUpgrade(user.accountPasswordHash)) user.accountPasswordHash = hashPassword(body.password);
     user.failedLoginCount = 0;
     user.lockedUntil = '';
     user.lastLoginAt = now();
@@ -787,7 +912,8 @@ class TutorApi {
 
     const user = this.store.table('users').find((item) => item.phone === account || item.accountUsername === account);
     this.ensureLoginAllowed(user, '账号或密码错误');
-    if (user.accountPasswordHash !== hashPassword(body.password)) this.recordPasswordFailure(user, '账号或密码错误');
+    if (!verifyPassword(body.password, user.accountPasswordHash)) this.recordPasswordFailure(user, '账号或密码错误');
+    if (passwordHashNeedsUpgrade(user.accountPasswordHash)) user.accountPasswordHash = hashPassword(body.password);
     user.failedLoginCount = 0;
     user.lockedUntil = '';
     user.lastLoginAt = now();
@@ -837,6 +963,11 @@ class TutorApi {
 
   async wechatLogin(body) {
     assertRequired(body.code, '缺少微信登录 code');
+    const usesMockIdentity = cleanText(body.code).startsWith('mock_') || Boolean(cleanText(body.devOpenid));
+    if (usesMockIdentity && !this.allowMockFeatures) throw createError(403, '正式环境禁止使用 mock 微信登录');
+    if (!this.allowMockFeatures && this.wechatClient && typeof this.wechatClient.isConfigured === 'function' && !this.wechatClient.isConfigured()) {
+      throw createError(503, '微信服务端配置缺失，请配置 WECHAT_APPID 和 WECHAT_SECRET');
+    }
     const session = await this.resolveWechatSession(body);
     const { user, isNewUser } = this.store.createOrUpdateWechatUser({
       ...session,
@@ -852,11 +983,12 @@ class TutorApi {
     assertRequired(body.password, '请输入密码');
     const username = String(body.username).trim();
     const user = this.store.table('users').find((item) => item.accountUsername === username || item.phone === username);
-    if (!user || user.accountPasswordHash !== hashPassword(body.password)) {
+    if (!user || !verifyPassword(body.password, user.accountPasswordHash)) {
       throw createError(401, '账号或密码错误');
     }
     this.ensureLoginAllowed(user, '账号或密码错误');
 
+    if (passwordHashNeedsUpgrade(user.accountPasswordHash)) user.accountPasswordHash = hashPassword(body.password);
     user.lastLoginAt = now();
     this.store.touch(user);
     this.store.save();
@@ -883,7 +1015,7 @@ class TutorApi {
       admin.lockedUntil = '';
     }
 
-    if (admin.passwordHash !== hashPassword(password)) {
+    if (!verifyPassword(password, admin.passwordHash)) {
       admin.failedLoginCount += 1;
       if (admin.failedLoginCount >= 5) {
         admin.status = ADMIN_STATUS.LOCKED;
@@ -895,6 +1027,7 @@ class TutorApi {
       throw createError(401, '账号或密码错误');
     }
 
+    if (passwordHashNeedsUpgrade(admin.passwordHash)) admin.passwordHash = hashPassword(password);
     admin.failedLoginCount = 0;
     admin.lockedUntil = '';
     admin.status = ADMIN_STATUS.NORMAL;
@@ -1041,6 +1174,7 @@ class TutorApi {
   }
 
   sendPhoneCode(req, body) {
+    if (!this.allowMockFeatures) throw createError(503, '正式环境短信验证码服务尚未配置');
     this.requireUser(req);
     assertChinaPhone(body.phone);
     const existing = this.store.table('phoneVerifications').find((item) => item.phone === body.phone);
@@ -1079,12 +1213,14 @@ class TutorApi {
         const phoneInfo = await this.wechatClient.getPhoneNumber(phoneCode);
         phone = cleanText(phoneInfo.phoneNumber || phoneInfo.purePhoneNumber);
       } else {
+        if (!this.allowMockFeatures) throw createError(503, '微信手机号服务未配置或授权 code 无效');
         phone = mockPhoneFromCode(phoneCode, user.id);
       }
     }
     assertChinaPhone(phone);
 
     if (!phoneCode) {
+      if (!this.allowMockFeatures) throw createError(503, '正式环境短信验证码服务尚未配置');
       const record = this.store.table('phoneVerifications').find((item) => item.phone === phone);
       if (!record) throw createError(400, '请先获取验证码');
       if (record.lockedUntil && Date.parse(record.lockedUntil) > Date.now()) {
@@ -1636,7 +1772,28 @@ class TutorApi {
     };
     this.store.table('contactLogs').push(log);
     this.store.save();
-    return { log };
+    return { log: this.contactLogView(log) };
+  }
+
+  contactLogView(log) {
+    let targetName = '';
+    let targetSummary = '';
+    if (log.targetType === 'teacher') {
+      const teacher = this.store.findById('teachers', log.targetId);
+      const owner = teacher ? this.teacherOwner(teacher) : null;
+      targetName = teacher ? (owner && owner.nickname ? owner.nickname : `${teacher.realName.slice(0, 1)}老师`) : '老师信息';
+      targetSummary = teacher ? `${teacher.school}｜${teacher.major}` : '';
+    }
+    if (log.targetType === 'parent_requirement') {
+      const requirement = this.store.findById('parentRequirements', log.targetId);
+      targetName = requirement ? requirement.parentDisplayName : '家长需求';
+      targetSummary = requirement ? `${requirement.childGrade}｜${requirement.subject}｜${requirement.district}` : '';
+    }
+    return {
+      ...log,
+      targetName,
+      targetSummary
+    };
   }
 
   listMyContactLogs(req, searchParams) {
@@ -1645,7 +1802,7 @@ class TutorApi {
     let list = this.store.table('contactLogs').filter((log) => Number(log.userId) === Number(user.id));
     if (targetType) list = list.filter((log) => log.targetType === targetType);
     list = list.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-    return { list, total: list.length };
+    return { list: list.map((log) => this.contactLogView(log)), total: list.length };
   }
 
   applyTeacher(req, body, isEdit = false) {
@@ -1822,6 +1979,11 @@ class TutorApi {
       updatedAt: now()
     };
     this.store.table('orders').push(order);
+    this.recordOrderStatus(order, '', ORDER_STATUS.PENDING_TEACHER, {
+      actorType: ROLES.PARENT,
+      actorId: user.id,
+      reason: '创建预约订单'
+    });
     this.store.log('notify_teacher_new_order', { teacherId: teacher.id, orderId: order.id });
     this.store.save();
     return { order: this.orderView(order, { kind: 'parent', user }) };
@@ -1874,14 +2036,31 @@ class TutorApi {
     return { order, teacher };
   }
 
+  teacherCanViewOrderContact(order, teacher, user) {
+    if (!order || !teacher || !user || Number(teacher.userId) !== Number(user.id)) return false;
+    const effectiveStatus = [ORDER_STATUS.COMPLAINT, ORDER_STATUS.CLOSED].includes(order.status)
+      ? order.previousStatus
+      : order.status;
+    return [
+      ORDER_STATUS.PENDING_CLASS,
+      ORDER_STATUS.IN_CLASS,
+      ORDER_STATUS.PENDING_PARENT_CONFIRM,
+      ORDER_STATUS.COMPLETED
+    ].includes(effectiveStatus);
+  }
+
+  canViewOrderContact(order, viewer, teacher) {
+    if (viewer.kind === 'admin') return true;
+    if (viewer.kind === 'parent' && viewer.user && Number(viewer.user.id) === Number(order.parentUserId)) {
+      return true;
+    }
+    return viewer.kind === 'teacher' && this.teacherCanViewOrderContact(order, teacher, viewer.user);
+  }
+
   orderView(order, viewer = { kind: 'guest' }) {
     const teacher = this.store.findById('teachers', order.teacherId);
     const parent = this.store.findById('users', order.parentUserId);
-    const teacherAccepted = ![ORDER_STATUS.PENDING_TEACHER, ORDER_STATUS.REJECTED].includes(order.status);
-    const canViewAddress =
-      viewer.kind === 'admin' ||
-      (viewer.kind === 'parent' && viewer.user && viewer.user.id === order.parentUserId) ||
-      (viewer.kind === 'teacher' && teacher && viewer.user && teacher.userId === viewer.user.id && teacherAccepted);
+    const canViewContact = this.canViewOrderContact(order, viewer, teacher);
 
     return {
       id: order.id,
@@ -1894,7 +2073,7 @@ class TutorApi {
             id: parent.id,
             nickname: parent.nickname,
             avatar: parent.avatar,
-            phone: viewer.kind === 'admin' || viewer.kind === 'teacher' ? parent.phone : undefined
+            phone: canViewContact ? parent.phone : undefined
           }
         : null,
       subject: order.subject,
@@ -1903,13 +2082,14 @@ class TutorApi {
       startTime: order.startTime,
       endTime: order.endTime,
       serviceArea: order.serviceArea,
-      address: canViewAddress ? order.address : '老师接受订单后可查看详细地址',
-      contactName: canViewAddress ? order.contactName : '老师接受后可见',
-      contactPhone: canViewAddress ? order.contactPhone : '',
+      address: canViewContact ? order.address : '老师接受订单后可查看详细地址',
+      contactName: canViewContact ? order.contactName : '老师接受后可见',
+      contactPhone: canViewContact ? order.contactPhone : '',
       note: order.note,
       closeReason: order.closeReason,
       previousStatus: order.previousStatus,
-      canViewAddress,
+      canViewAddress: canViewContact,
+      canViewContact,
       actions: this.orderActions(order, viewer),
       createdAt: order.createdAt,
       updatedAt: order.updatedAt
@@ -1933,12 +2113,27 @@ class TutorApi {
     return [];
   }
 
-  transitionOrder(order, fromStatus, toStatus) {
+  recordOrderStatus(order, fromStatus, toStatus, context = {}) {
+    this.store.table('orderStatusLogs').push({
+      id: this.store.nextId('orderStatusLogs'),
+      orderId: order.id,
+      fromStatus: fromStatus || '',
+      toStatus,
+      actorType: context.actorType || 'system',
+      actorId: context.actorId || 0,
+      reason: context.reason || '',
+      createdAt: now()
+    });
+  }
+
+  transitionOrder(order, fromStatus, toStatus, context = {}) {
     if (Array.isArray(fromStatus) ? !fromStatus.includes(order.status) : order.status !== fromStatus) {
       throw createError(400, `当前订单状态为${textOf(order.status)}，不能执行该操作`);
     }
+    const previousStatus = order.status;
     order.status = toStatus;
     order.updatedAt = now();
+    this.recordOrderStatus(order, previousStatus, toStatus, context);
     this.store.save();
     return order;
   }
@@ -1947,7 +2142,11 @@ class TutorApi {
     const user = this.requireUser(req);
     const order = this.store.findById('orders', orderId);
     if (!order || order.parentUserId !== user.id) throw createError(404, '订单不存在');
-    this.transitionOrder(order, ORDER_STATUS.PENDING_TEACHER, ORDER_STATUS.CANCELED);
+    this.transitionOrder(order, ORDER_STATUS.PENDING_TEACHER, ORDER_STATUS.CANCELED, {
+      actorType: ROLES.PARENT,
+      actorId: user.id,
+      reason: '家长取消预约'
+    });
     return { order: this.orderView(order, { kind: 'parent', user }) };
   }
 
@@ -1956,7 +2155,11 @@ class TutorApi {
     const { order, teacher } = this.requireTeacherOrder(user, orderId);
     this.ensureNormalUser(user);
     if (teacher.auditStatus !== TEACHER_AUDIT_STATUS.APPROVED) throw createError(403, '老师审核通过后才可以接单');
-    this.transitionOrder(order, ORDER_STATUS.PENDING_TEACHER, ORDER_STATUS.PENDING_CLASS);
+    this.transitionOrder(order, ORDER_STATUS.PENDING_TEACHER, ORDER_STATUS.PENDING_CLASS, {
+      actorType: ROLES.TEACHER,
+      actorId: user.id,
+      reason: '老师接受预约'
+    });
     this.store.log('notify_parent_order_accepted', { orderId, parentUserId: order.parentUserId });
     return { order: this.orderView(order, { kind: 'teacher', user }) };
   }
@@ -1965,7 +2168,11 @@ class TutorApi {
     const user = this.requireUser(req);
     const { order } = this.requireTeacherOrder(user, orderId);
     order.rejectReason = body.reason || '';
-    this.transitionOrder(order, ORDER_STATUS.PENDING_TEACHER, ORDER_STATUS.REJECTED);
+    this.transitionOrder(order, ORDER_STATUS.PENDING_TEACHER, ORDER_STATUS.REJECTED, {
+      actorType: ROLES.TEACHER,
+      actorId: user.id,
+      reason: order.rejectReason || '老师拒绝预约'
+    });
     this.store.log('notify_parent_order_rejected', { orderId, parentUserId: order.parentUserId });
     return { order: this.orderView(order, { kind: 'teacher', user }) };
   }
@@ -1973,14 +2180,22 @@ class TutorApi {
   startClass(req, orderId) {
     const user = this.requireUser(req);
     const { order } = this.requireTeacherOrder(user, orderId);
-    this.transitionOrder(order, ORDER_STATUS.PENDING_CLASS, ORDER_STATUS.IN_CLASS);
+    this.transitionOrder(order, ORDER_STATUS.PENDING_CLASS, ORDER_STATUS.IN_CLASS, {
+      actorType: ROLES.TEACHER,
+      actorId: user.id,
+      reason: '老师开始上课'
+    });
     return { order: this.orderView(order, { kind: 'teacher', user }) };
   }
 
   finishClass(req, orderId) {
     const user = this.requireUser(req);
     const { order } = this.requireTeacherOrder(user, orderId);
-    this.transitionOrder(order, ORDER_STATUS.IN_CLASS, ORDER_STATUS.PENDING_PARENT_CONFIRM);
+    this.transitionOrder(order, ORDER_STATUS.IN_CLASS, ORDER_STATUS.PENDING_PARENT_CONFIRM, {
+      actorType: ROLES.TEACHER,
+      actorId: user.id,
+      reason: '老师提交完课'
+    });
     this.store.log('notify_parent_confirm_order', { orderId, parentUserId: order.parentUserId });
     return { order: this.orderView(order, { kind: 'teacher', user }) };
   }
@@ -1989,7 +2204,11 @@ class TutorApi {
     const user = this.requireUser(req);
     const order = this.store.findById('orders', orderId);
     if (!order || order.parentUserId !== user.id) throw createError(404, '订单不存在');
-    this.transitionOrder(order, ORDER_STATUS.PENDING_PARENT_CONFIRM, ORDER_STATUS.COMPLETED);
+    this.transitionOrder(order, ORDER_STATUS.PENDING_PARENT_CONFIRM, ORDER_STATUS.COMPLETED, {
+      actorType: ROLES.PARENT,
+      actorId: user.id,
+      reason: '家长确认完成'
+    });
     this.recomputeTeacherStats(order.teacherId);
     this.store.log('notify_parent_review_order', { orderId, parentUserId: order.parentUserId });
     return { order: this.orderView(order, { kind: 'parent', user }) };
@@ -2055,8 +2274,14 @@ class TutorApi {
     };
     this.store.table('complaints').push(complaint);
     if (order.status !== ORDER_STATUS.COMPLAINT) order.previousStatus = order.status;
+    const previousStatus = order.status;
     order.status = ORDER_STATUS.COMPLAINT;
     order.updatedAt = now();
+    this.recordOrderStatus(order, previousStatus, ORDER_STATUS.COMPLAINT, {
+      actorType: complainantRole,
+      actorId: user.id,
+      reason: body.reason
+    });
     this.store.save();
     return { complaint: this.complaintView(complaint, { kind: complainantRole, user }) };
   }
@@ -2656,9 +2881,15 @@ class TutorApi {
     if (!order) throw createError(404, '订单不存在');
     if (FINAL_ORDER_STATUS.includes(order.status) && order.status !== ORDER_STATUS.COMPLETED) throw createError(400, '终态订单不能关闭');
     order.previousStatus = order.status;
+    const previousStatus = order.status;
     order.status = ORDER_STATUS.CLOSED;
     order.closeReason = body.reason;
     order.updatedAt = now();
+    this.recordOrderStatus(order, previousStatus, ORDER_STATUS.CLOSED, {
+      actorType: 'admin',
+      actorId: admin.id,
+      reason: body.reason
+    });
     this.adminOperation(admin, 'admin_close_order', 'order', orderId, body.reason);
     this.store.save();
     return { order: this.orderView(order, { kind: 'admin' }) };
@@ -2700,9 +2931,15 @@ class TutorApi {
 
     const order = this.store.findById('orders', complaint.orderId);
     if (order && order.status === ORDER_STATUS.COMPLAINT) {
+      const previousStatus = order.status;
       order.status = body.closeOrder ? ORDER_STATUS.CLOSED : order.previousStatus || ORDER_STATUS.PENDING_TEACHER;
       if (body.closeOrder) order.closeReason = body.result;
       order.updatedAt = now();
+      this.recordOrderStatus(order, previousStatus, order.status, {
+        actorType: 'admin',
+        actorId: admin.id,
+        reason: body.result
+      });
     }
 
     if (body.targetAction === 'freeze') {

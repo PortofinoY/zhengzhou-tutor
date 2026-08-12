@@ -1,6 +1,7 @@
 const { request, showError } = require('../../utils/request');
 const { requireLogin, requirePhone } = require('../../utils/auth');
-const { startLocalTest } = require('../../utils/local-test');
+const { DEMO_MODE_ENABLED } = require('../../utils/config');
+const demoStore = require('../../utils/local-test');
 
 const TEACHER_STATUS_META = {
   not_submitted: {
@@ -48,15 +49,6 @@ const ORDER_SHORTCUTS = [
   { key: 'completed', title: '已完成', icon: '成', count: 0 }
 ];
 
-const TEST_USERS = {
-  parent: {
-    toast: '已进入家长测试'
-  },
-  teacher: {
-    toast: '已进入老师测试'
-  }
-};
-
 function teacherStatusMeta(status, fallbackText) {
   const meta = TEACHER_STATUS_META[status] || TEACHER_STATUS_META.not_submitted;
   return {
@@ -91,10 +83,14 @@ Page({
     teacherRatingText: '暂无评分',
     teacherCompletedText: '0单',
     orderShortcuts: ORDER_SHORTCUTS,
-    loading: false
+    loading: false,
+    loadFailed: false,
+    demoModeEnabled: DEMO_MODE_ENABLED,
+    demoModeActive: false
   },
 
   onShow() {
+    this.setData({ demoModeActive: demoStore.isDemoMode() });
     this.loadProfile();
   },
 
@@ -104,7 +100,7 @@ Page({
       return;
     }
 
-    this.setData({ loading: true });
+    this.setData({ loading: true, loadFailed: false });
     try {
       const data = await request('/users/me');
       getApp().setAuth(data);
@@ -130,6 +126,7 @@ Page({
         this.loadTeacherWorkbench(status)
       ]);
     } catch (error) {
+      this.setData({ loadFailed: true });
       showError(error);
     } finally {
       this.setData({ loading: false });
@@ -154,7 +151,9 @@ Page({
       teacherOrderStatusClass: 'status-neutral',
       teacherRatingText: '暂无评分',
       teacherCompletedText: '0单',
-      orderShortcuts: ORDER_SHORTCUTS
+      orderShortcuts: ORDER_SHORTCUTS,
+      loading: false,
+      loadFailed: false
     });
   },
 
@@ -225,25 +224,6 @@ Page({
     wx.navigateTo({ url: '/pages/login/login?redirect=/pages/profile/profile' });
   },
 
-  async loginAsTestUser(event) {
-    const role = event.currentTarget.dataset.role;
-    const testUser = TEST_USERS[role];
-    if (!testUser) return;
-
-    wx.showLoading({ title: '正在进入测试' });
-    try {
-      getApp().logout();
-      const data = startLocalTest(role);
-      getApp().setAuth(data);
-      await this.loadProfile();
-      wx.showToast({ title: testUser.toast, icon: 'success' });
-    } catch (error) {
-      showError(error);
-    } finally {
-      wx.hideLoading();
-    }
-  },
-
   goBindPhone() {
     if (requireLogin('/pages/bind-phone/bind-phone')) {
       wx.navigateTo({ url: '/pages/bind-phone/bind-phone?redirect=/pages/profile/profile' });
@@ -256,6 +236,33 @@ Page({
 
   goTeachers() {
     wx.navigateTo({ url: '/pages/teachers/teachers' });
+  },
+
+  goUserProfile() {
+    if (!this.data.user) {
+      this.goLogin();
+      return;
+    }
+    const target = this.data.user.currentRole === 'teacher'
+      ? '/pages/teacher-apply/teacher-apply?redirect=%2Fpages%2Fprofile%2Fprofile'
+      : '/pages/parent-profile/parent-profile?redirect=%2Fpages%2Fprofile%2Fprofile';
+    wx.navigateTo({ url: target });
+  },
+
+  goRequirements() {
+    if (!requireLogin('/pages/requirements/requirements')) return;
+    wx.navigateTo({ url: '/pages/requirements/requirements' });
+  },
+
+  goPublishRequirement() {
+    const target = '/pages/requirement-publish/requirement-publish';
+    if (!requireLogin(target) || !requirePhone(target)) return;
+    wx.navigateTo({ url: target });
+  },
+
+  goTeacherReviews() {
+    if (!requireLogin('/pages/teacher-reviews/teacher-reviews')) return;
+    wx.navigateTo({ url: '/pages/teacher-reviews/teacher-reviews' });
   },
 
   goOrders() {
@@ -307,14 +314,6 @@ Page({
     }
   },
 
-  showPlatformInfo() {
-    wx.showModal({
-      title: '平台说明',
-      content: '平台仅提供大学生家教信息展示、预约撮合和服务记录功能，具体授课内容与双方约定有关。',
-      showCancel: false
-    });
-  },
-
   showAbout() {
     wx.showModal({
       title: '关于我们',
@@ -331,6 +330,21 @@ Page({
     wx.navigateTo({ url: '/pages/privacy/privacy' });
   },
 
+  goUnlockRecords() {
+    if (!requireLogin('/pages/unlock-records/unlock-records')) return;
+    wx.navigateTo({ url: '/pages/unlock-records/unlock-records' });
+  },
+
+  goContactLogs() {
+    if (!requireLogin('/pages/contact-logs/contact-logs')) return;
+    wx.navigateTo({ url: '/pages/contact-logs/contact-logs' });
+  },
+
+  goDemoMode() {
+    if (!DEMO_MODE_ENABLED) return;
+    wx.navigateTo({ url: '/pages/demo-mode/demo-mode' });
+  },
+
   contact() {
     if (wx.openCustomerServiceChat) {
       wx.showModal({ title: '联系客服', content: '当前演示环境暂未配置微信客服链接，请通过平台运营微信或电话联系人工客服。', showCancel: false });
@@ -340,13 +354,33 @@ Page({
   },
 
   logout() {
+    if (demoStore.isDemoMode()) {
+      wx.showModal({
+        title: '退出演示模式',
+        content: '退出后将恢复进入演示前的账号状态。',
+        confirmText: '退出',
+        success: (res) => {
+          if (!res.confirm) return;
+          demoStore.exitDemo();
+          this.setData({ demoModeActive: false });
+          this.loadProfile();
+          wx.showToast({ title: '已退出演示模式', icon: 'success' });
+        }
+      });
+      return;
+    }
     wx.showModal({
       title: '退出登录',
       content: '确认退出当前账号吗？',
       confirmText: '退出',
       confirmColor: '#EF4444',
-      success: (res) => {
+      success: async (res) => {
         if (!res.confirm) return;
+        try {
+          await request('/auth/logout', { method: 'POST' });
+        } catch (error) {
+          // 本地登录态仍需清理，避免网络故障阻塞退出操作。
+        }
         getApp().logout();
         this.resetProfile();
         wx.showToast({ title: '已退出', icon: 'success' });

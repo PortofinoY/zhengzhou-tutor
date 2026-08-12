@@ -1,11 +1,13 @@
 const { request, showError } = require('../../utils/request');
 const { redirectAfterAuth, backOrHome } = require('../../utils/auth');
+const { SHOW_DEV_TOOLS } = require('../../utils/config');
 
 Page({
   data: {
     redirect: '/pages/index/index',
     loading: false,
     agreed: false,
+    useMockSmsCode: SHOW_DEV_TOOLS,
     form: {
       phone: '',
       password: '',
@@ -27,6 +29,7 @@ Page({
   },
 
   fillMockCode() {
+    if (!this.data.useMockSmsCode) return;
     this.setData({ 'form.smsCode': '123456' });
     wx.showToast({ title: '已填入演示验证码', icon: 'none' });
   },

@@ -1,90 +1,107 @@
 <view class="page profile-page">
-  <view class="profile-hero">
+  <view class="profile-hero tap-feedback" bindtap="goUserProfile">
     <view class="profile-user-row">
       <view wx:if="{{user && user.avatar}}" class="avatar-wrap">
         <image class="avatar-img" src="{{user.avatar}}" mode="aspectFill"></image>
       </view>
       <view wx:else class="avatar-wrap avatar-placeholder">{{user ? '家' : '未'}}</view>
       <view class="user-copy">
-        <view class="user-name">{{user ? user.nickname : '请登录'}}</view>
+        <view class="user-name">{{user ? (user.nickname || '微信用户') : '请登录'}}</view>
         <view wx:if="{{user}}" class="user-tags">
           <text class="pill pill-cert">{{currentRoleText}}</text>
           <text class="pill {{user.phoneBound ? 'pill-success' : 'pill-warning'}}">{{phoneStatusText}}</text>
+          <text wx:if="{{demoModeActive}}" class="pill pill-demo">演示模式</text>
         </view>
-        <view wx:else class="user-desc">登录后查看订单和服务进度</view>
+        <view wx:else class="user-desc">登录后管理预约、资料与服务记录</view>
       </view>
+      <text wx:if="{{user}}" class="profile-arrow">›</text>
     </view>
     <view wx:if="{{user}}" class="hero-actions">
-      <button class="identity-btn" bindtap="goIdentity">切换身份</button>
-      <button wx:if="{{!user.phoneBound}}" class="identity-btn primary" bindtap="goBindPhone">绑定手机号</button>
+      <button class="identity-btn" catchtap="goIdentity">切换身份</button>
+      <button wx:if="{{!user.phoneBound}}" class="identity-btn primary" catchtap="goBindPhone">绑定手机号</button>
     </view>
-    <button wx:else class="login-main-btn" bindtap="goWechatLogin">立即登录</button>
+    <button wx:else class="login-main-btn" catchtap="goWechatLogin">微信登录</button>
   </view>
 
-  <view wx:if="{{user}}" class="profile-card role-card">
-    <view class="role-head">
+  <view wx:if="{{loading}}" class="state-strip">正在更新个人服务信息</view>
+  <view wx:if="{{loadFailed && user}}" class="state-strip state-error" bindtap="loadProfile">信息加载失败，点击重试</view>
+
+  <view wx:if="{{user}}" class="profile-card action-card">
+    <view class="section-head">
       <view>
-        <view class="module-title">{{user.currentRole === 'teacher' ? '老师中心' : '家长中心'}}</view>
-        <view class="module-desc">{{user.currentRole === 'teacher' ? '查看订单、完善资料、管理接单状态' : '可预约老师、查看订单、评价服务'}}</view>
+        <view class="module-title">{{user.currentRole === 'teacher' ? '老师服务' : '家长服务'}}</view>
+        <view class="module-desc">{{user.currentRole === 'teacher' ? teacherStatusDesc : '找到合适老师，管理预约与需求'}}</view>
       </view>
       <text wx:if="{{user.currentRole === 'teacher'}}" class="status-pill {{teacherStatusClass}}">{{teacherStatusText}}</text>
-      <text wx:else class="status-pill status-success">家长可用</text>
     </view>
-    <view wx:if="{{user.currentRole === 'teacher'}}" class="role-actions two-col">
-      <button class="btn btn-primary" bindtap="goDashboard"><text>老师工作台</text></button>
-      <button class="btn btn-ghost" bindtap="goOrders"><text>我的订单</text></button>
-    </view>
-    <view wx:else class="role-actions two-col">
-      <button class="btn btn-primary" bindtap="goTeachers"><text>去找老师</text></button>
-      <button class="btn btn-ghost" bindtap="goOrders"><text>我的订单</text></button>
-    </view>
-  </view>
 
-  <view class="profile-card quick-card">
-    <view class="quick-grid">
-      <view class="quick-item" bindtap="goTeachers"><text class="quick-icon color-a">找</text><text class="quick-title">找老师</text></view>
-      <view class="quick-item" bindtap="goOrders"><text class="quick-icon color-c">单</text><text class="quick-title">我的订单</text></view>
-      <view class="quick-item" bindtap="goTeacherAction"><text class="quick-icon color-e">师</text><text class="quick-title">申请老师</text></view>
-      <view class="quick-item" bindtap="goComplaints"><text class="quick-icon color-f">诉</text><text class="quick-title">投诉反馈</text></view>
-    </view>
-  </view>
-
-  <view wx:if="{{teacherPanelVisible}}" class="profile-card teacher-service">
-    <view class="role-head">
+    <view wx:if="{{user.currentRole === 'teacher'}}" class="core-action core-action-teacher tap-feedback" bindtap="goRequirements">
       <view>
-        <view class="module-title">老师服务</view>
-        <view class="module-desc">查看认证、接单和服务表现</view>
+        <view class="core-action-title">找需求</view>
+        <view class="core-action-desc">查看适合自己的辅导需求</view>
       </view>
-      <button class="identity-btn" bindtap="goDashboard">工作台</button>
+      <text class="core-action-arrow">›</text>
     </view>
-    <view class="teacher-stats">
-      <view class="stat-box"><text class="stat-label">审核状态</text><text class="status-pill {{teacherStatusClass}}">{{teacherStatusText}}</text></view>
-      <view class="stat-box"><text class="stat-label">接单状态</text><text class="status-pill {{teacherOrderStatusClass}}">{{teacherOrderStatusText}}</text></view>
-      <view class="stat-box"><text class="stat-label">完成订单</text><text class="stat-value">{{teacherCompletedText}}</text></view>
-      <view class="stat-box"><text class="stat-label">当前评分</text><text class="stat-value">{{teacherRatingText}}</text></view>
+    <view wx:else class="core-action tap-feedback" bindtap="goTeachers">
+      <view>
+        <view class="core-action-title">找老师</view>
+        <view class="core-action-desc">按科目、年级和区域筛选</view>
+      </view>
+      <text class="core-action-arrow">›</text>
+    </view>
+
+    <view class="core-menu-grid">
+      <view class="core-menu-item tap-feedback" bindtap="goOrders">
+        <text class="core-menu-title">我的订单</text>
+        <text class="core-menu-desc">查看预约进度</text>
+      </view>
+      <view wx:if="{{user.currentRole === 'teacher'}}" class="core-menu-item tap-feedback" bindtap="goTeacherAction">
+        <text class="core-menu-title">资料管理</text>
+        <text class="core-menu-desc">入驻与认证状态</text>
+      </view>
+      <view wx:if="{{user.currentRole === 'teacher'}}" class="core-menu-item tap-feedback" bindtap="goTeacherReviews">
+        <text class="core-menu-title">服务评价</text>
+        <text class="core-menu-desc">查看家长反馈</text>
+      </view>
+      <view wx:if="{{user.currentRole !== 'teacher'}}" class="core-menu-item tap-feedback" bindtap="goPublishRequirement">
+        <text class="core-menu-title">发布需求</text>
+        <text class="core-menu-desc">填写辅导需求</text>
+      </view>
     </view>
   </view>
 
-  <view class="test-card dev-only">
-    <view class="test-copy">
-      <view class="test-title">测试入口</view>
-      <view class="test-desc">快速切换测试身份，跑通预约流程</view>
-    </view>
-    <view class="test-actions">
-      <button class="test-btn primary" data-role="parent" bindtap="loginAsTestUser">家长用户</button>
-      <button class="test-btn secondary" data-role="teacher" bindtap="loginAsTestUser">老师用户</button>
-    </view>
+  <view wx:else class="profile-card guest-card">
+    <view class="module-title">开始使用</view>
+    <view class="module-desc">登录后可查看订单、完善资料并使用身份专属服务。</view>
+    <button class="guest-login-btn" bindtap="goLogin">去登录</button>
   </view>
 
   <view class="profile-card service-card">
-    <view class="module-title">平台服务</view>
+    <view class="section-head service-head">
+      <view>
+        <view class="module-title">服务与帮助</view>
+        <view class="module-desc">使用说明、记录与平台支持</view>
+      </view>
+    </view>
     <view class="service-grid">
-      <view class="service-item" bindtap="showPlatformInfo"><text class="service-icon">说</text><text>平台说明</text></view>
-      <view class="service-item" bindtap="goAgreement"><text class="service-icon">约</text><text>用户协议</text></view>
-      <view class="service-item" bindtap="goPrivacy"><text class="service-icon">隐</text><text>隐私政策</text></view>
-      <view class="service-item" bindtap="contact"><text class="service-icon">客</text><text>联系客服</text></view>
-      <view class="service-item" bindtap="showAbout"><text class="service-icon">关</text><text>关于我们</text></view>
-      <view wx:if="{{user}}" class="service-item danger" bindtap="logout"><text class="service-icon">出</text><text>退出登录</text></view>
+      <view class="service-item tap-feedback" bindtap="goAgreement"><text class="service-title">用户协议</text><text class="service-desc">使用规则</text></view>
+      <view class="service-item tap-feedback" bindtap="goPrivacy"><text class="service-title">隐私政策</text><text class="service-desc">信息保护</text></view>
+      <view class="service-item tap-feedback" bindtap="goUnlockRecords"><text class="service-title">联系方式解锁记录</text><text class="service-desc">购买与解锁</text></view>
+      <view class="service-item tap-feedback" bindtap="goContactLogs"><text class="service-title">联系记录</text><text class="service-desc">沟通留痕</text></view>
+      <view class="service-item tap-feedback" bindtap="contact"><text class="service-title">联系客服</text><text class="service-desc">获取帮助</text></view>
+      <view class="service-item tap-feedback" bindtap="showAbout"><text class="service-title">关于我们</text><text class="service-desc">了解平台</text></view>
     </view>
   </view>
+
+  <view wx:if="{{demoModeEnabled}}" class="demo-entry tap-feedback" bindtap="goDemoMode">
+    <view>
+      <view class="demo-entry-title">演示模式</view>
+      <view class="demo-entry-desc">本地体验家长和老师完整流程</view>
+    </view>
+    <text class="demo-entry-arrow">›</text>
+  </view>
+
+  <button wx:if="{{user}}" class="account-action-button logout-button" bindtap="logout">{{demoModeActive ? '退出演示模式' : '退出登录'}}</button>
+  <button wx:else class="account-action-button login-button" bindtap="goLogin">登录</button>
+  <view class="bottom-safe-space"></view>
 </view>

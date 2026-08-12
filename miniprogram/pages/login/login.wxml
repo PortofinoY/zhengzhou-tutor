@@ -8,8 +8,19 @@
   </view>
 
   <view class="login-card">
-    <view class="login-title">微信登录</view>
-    <view class="login-desc">普通用户使用微信登录进入小程序。首次登录后需要选择家长或老师身份，并完善对应资料。</view>
+    <view class="login-title">登录</view>
+    <view class="login-desc">支持账号密码登录和微信登录。首次登录后需要选择家长或老师身份，并完善对应资料。</view>
+
+    <view class="account-form">
+      <view class="field">
+        <view class="field-label">手机号</view>
+        <input class="login-input" type="number" maxlength="11" placeholder-class="input-placeholder" placeholder="请输入注册手机号" value="{{phone}}" data-field="phone" bindinput="onInput" />
+      </view>
+      <view class="field">
+        <view class="field-label">密码</view>
+        <input class="login-input" type="password" placeholder-class="input-placeholder" placeholder="请输入密码" value="{{password}}" data-field="password" bindinput="onInput" />
+      </view>
+    </view>
 
     <label class="agreement">
       <checkbox checked="{{agreed}}" bindtap="toggleAgree" />
@@ -19,7 +30,21 @@
       <text class="link" bindtap="goPrivacy">《隐私政策》</text>
     </label>
 
-    <button class="wechat-login" loading="{{loading}}" disabled="{{loading}}" bindtap="login">
+    <button class="account-login" loading="{{accountLoading}}" disabled="{{accountLoading || loading}}" bindtap="accountLogin">
+      <text>{{accountLoading ? '登录中...' : '账号密码登录'}}</text>
+    </button>
+    <view class="register-row">
+      <text class="register-text">还没有账号？</text>
+      <text class="register-link" bindtap="goRegister">注册账号</text>
+    </view>
+
+    <view class="login-divider">
+      <view class="divider-line"></view>
+      <text class="divider-text">或</text>
+      <view class="divider-line"></view>
+    </view>
+
+    <button class="wechat-login" loading="{{loading}}" disabled="{{loading || accountLoading}}" bindtap="login">
       <text class="wechat-icon">微</text>
       <text>{{loading ? '登录中...' : '微信登录'}}</text>
     </button>

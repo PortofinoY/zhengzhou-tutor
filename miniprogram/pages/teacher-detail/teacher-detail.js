@@ -1,6 +1,7 @@
 const { request } = require('../../utils/api');
 const { requireLogin, requirePhone } = require('../../utils/auth');
 const { buildUnlockPlan } = require('../../utils/unlock');
+const demoStore = require('../../utils/local-test');
 
 Page({
   data: {
@@ -30,7 +31,9 @@ Page({
     const plan = buildUnlockPlan('teacher', this.data.teacher.id);
     wx.showModal({
       title: '解锁联系方式',
-      content: `确认支付${plan.amount}元解锁该老师完整资料和联系方式？开发环境使用 mock 支付。`,
+      content: demoStore.isDemoMode()
+        ? `演示模式将模拟支付${plan.amount}元并解锁该老师联系方式。`
+        : `确认支付${plan.amount}元解锁该老师完整资料和联系方式？`,
       confirmText: '确认解锁',
       success: async (res) => {
         if (!res.confirm) return;
@@ -44,7 +47,7 @@ Page({
           }
           const data = await request({ url: plan.mockPayUrl, method: 'POST' });
           this.setData({ teacher: data.teacher });
-          wx.showToast({ title: '解锁成功', icon: 'success' });
+          wx.showToast({ title: demoStore.isDemoMode() ? '模拟支付成功' : '解锁成功', icon: 'success' });
         } catch (error) {
           wx.showToast({ title: error.message || '解锁失败', icon: 'none' });
         } finally {

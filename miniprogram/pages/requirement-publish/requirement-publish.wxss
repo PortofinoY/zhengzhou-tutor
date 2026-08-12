@@ -1,0 +1,112 @@
+.requirement-publish-page {
+  padding-bottom: 46rpx;
+}
+
+.publish-hero {
+  background: linear-gradient(135deg, #FFFFFF 0%, #EAFBF7 100%);
+}
+
+.price-hint {
+  margin-top: 10rpx;
+  color: #6B7280;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.phone-auth-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 24rpx;
+  padding: 22rpx;
+  border: 1rpx solid #E5EAF0;
+  border-radius: 20rpx;
+  background: #F7F9FA;
+}
+
+.phone-auth-title {
+  color: #1F2933;
+  font-size: 27rpx;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.phone-auth-desc {
+  margin-top: 8rpx;
+  color: #6B7280;
+  font-size: 23rpx;
+  line-height: 1.4;
+}
+
+.phone-bound-tag {
+  flex: none;
+  min-width: 104rpx;
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  color: #2BB3A3;
+  background: #E8F7F4;
+  font-size: 23rpx;
+  font-weight: 900;
+}
+
+.remark-item {
+  margin-top: 18rpx;
+}
+
+.consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  margin-top: 22rpx;
+  padding: 20rpx;
+  border-radius: 18rpx;
+  background: #F7F9FA;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.consent-row:active {
+  transform: scale(0.99);
+  opacity: 0.92;
+}
+
+.checkbox {
+  flex: none;
+  width: 38rpx;
+  height: 38rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #C9D5DD;
+  border-radius: 10rpx;
+  color: #FFFFFF;
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.checkbox.checked {
+  border-color: #2BB3A3;
+  background: #2BB3A3;
+}
+
+.consent-text {
+  flex: 1;
+  color: #1F2933;
+  font-size: 24rpx;
+  line-height: 1.48;
+}
+
+.privacy-note {
+  margin-top: 18rpx;
+  color: #6B7280;
+  font-size: 23rpx;
+  line-height: 1.56;
+}
+
+.submit {
+  margin-bottom: 34rpx;
+}

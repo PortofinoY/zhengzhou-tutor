@@ -4,7 +4,7 @@ page {
 
 .orders-page {
   min-height: 100vh;
-  padding: 18rpx 20rpx 34rpx;
+  padding: 20rpx 22rpx 36rpx;
   background:
     radial-gradient(circle at 84% 0%, rgba(43, 179, 163, 0.1), transparent 34%),
     linear-gradient(180deg, #EEF9F7 0%, #F8FBFB 58%, #FFFFFF 100%);
@@ -16,7 +16,7 @@ page {
 .orders-list-empty,
 .order-card-new {
   border: 1rpx solid rgba(229, 234, 240, 0.95);
-  border-radius: 26rpx;
+  border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 6rpx 22rpx rgba(30, 58, 95, 0.06);
 }
@@ -53,7 +53,7 @@ page {
 .orders-title,
 .orders-list-empty-title {
   color: #1F2933;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1.2;
 }
 
@@ -86,23 +86,23 @@ page {
 }
 
 .orders-hero {
-  min-height: 156rpx;
+  min-height: 148rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20rpx;
-  padding: 28rpx 24rpx;
+  padding: 24rpx;
   border-color: rgba(43, 179, 163, 0.2);
   background: linear-gradient(135deg, rgba(232, 247, 244, 0.98) 0%, #FFFFFF 74%);
 }
 
 .orders-title {
-  font-size: 40rpx;
+  font-size: 36rpx;
 }
 
 .orders-subtitle {
-  margin-top: 10rpx;
-  font-size: 23rpx;
+  margin-top: 8rpx;
+  font-size: 24rpx;
   font-weight: 600;
   max-width: 420rpx;
   overflow: hidden;
@@ -120,21 +120,21 @@ page {
   color: #2BB3A3;
   background: #E8F7F4;
   font-size: 22rpx;
-  font-weight: 900;
+  font-weight: 800;
   white-space: nowrap;
 }
 
 .orders-filter-card {
-  margin-top: 18rpx;
-  padding: 16rpx;
+  margin-top: 16rpx;
+  padding: 14rpx;
 }
 
 .role-current {
   min-height: 70rpx;
   display: flex;
   align-items: center;
-  gap: 14rpx;
-  padding: 12rpx 14rpx;
+  gap: 12rpx;
+  padding: 12rpx 16rpx;
   border: 1rpx solid rgba(43, 179, 163, 0.18);
   border-radius: 20rpx;
   background: #F5FBFA;
@@ -157,7 +157,7 @@ page {
 .role-current-title {
   color: #1F2933;
   font-size: 25rpx;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1.15;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -177,12 +177,12 @@ page {
 
 .tabs {
   width: 100%;
-  margin-top: 14rpx;
+  margin-top: 12rpx;
   white-space: nowrap;
 }
 
 .tab {
-  min-height: 48rpx;
+  min-height: 52rpx;
   display: inline-flex;
   align-items: center;
   padding: 0 18rpx;
@@ -249,7 +249,7 @@ page {
 }
 
 .order-card-new {
-  margin-top: 18rpx;
+  margin-top: 16rpx;
   padding: 22rpx;
   transition: transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease;
 }
@@ -270,7 +270,7 @@ page {
   flex: 1;
   color: #1F2933;
   font-size: 25rpx;
-  font-weight: 900;
+  font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -297,7 +297,7 @@ page {
 .order-person {
   color: #1F2933;
   font-size: 27rpx;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;

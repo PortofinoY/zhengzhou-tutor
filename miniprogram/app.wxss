@@ -13,8 +13,9 @@ page {
   background: #F7F9FA;
   color: #1F2933;
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", sans-serif;
-  font-size: 28rpx;
-  line-height: 1.45;
+  font-size: 27rpx;
+  line-height: 1.5;
+  letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -107,8 +108,8 @@ button::after {
 .order-card,
 .review-card,
 .audit-card {
-  margin-bottom: 22rpx;
-  padding: 26rpx;
+  margin-bottom: 20rpx;
+  padding: 24rpx;
 }
 
 .row {
@@ -120,37 +121,37 @@ button::after {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18rpx;
+  gap: 16rpx;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18rpx;
+  gap: 16rpx;
 }
 
 .title {
   color: #1F2933;
-  font-size: 40rpx;
+  font-size: 38rpx;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1.24;
 }
 
 .subtitle {
-  margin-top: 10rpx;
+  margin-top: 8rpx;
   color: #6B7280;
-  font-size: 26rpx;
-  line-height: 1.62;
+  font-size: 25rpx;
+  line-height: 1.55;
 }
 
 .section-title {
   display: flex;
   align-items: center;
   gap: 10rpx;
-  margin: 30rpx 0 18rpx;
+  margin: 28rpx 0 16rpx;
   color: #1F2933;
-  font-size: 31rpx;
+  font-size: 30rpx;
   font-weight: 800;
   line-height: 1.25;
 }
@@ -184,11 +185,11 @@ button::after {
 .tag-error {
   display: inline-flex;
   align-items: center;
-  min-height: 42rpx;
+  min-height: 40rpx;
   margin: 8rpx 8rpx 0 0;
-  padding: 0 16rpx;
+  padding: 0 14rpx;
   border-radius: 999rpx;
-  font-size: 23rpx;
+  font-size: 22rpx;
   line-height: 1;
   vertical-align: middle;
   max-width: 100%;
@@ -235,14 +236,14 @@ button::after {
 .button-secondary,
 .button-danger {
   width: 100%;
-  min-height: 84rpx;
-  padding: 0;
+  min-height: 80rpx;
+  padding: 0 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
+  gap: 10rpx;
   border-radius: 999rpx;
-  font-size: 28rpx;
+  font-size: 27rpx;
   font-weight: 600;
   letter-spacing: 0;
   text-align: center;
@@ -379,15 +380,15 @@ button::after {
 .picker,
 .picker-value {
   width: 100%;
-  min-height: 80rpx;
+  min-height: 78rpx;
   display: flex;
   align-items: center;
-  padding: 18rpx 22rpx;
+  padding: 16rpx 20rpx;
   border: 1rpx solid #E5F0EE;
   border-radius: 18rpx;
   background: #FFFFFF;
   color: #1F2933;
-  font-size: 28rpx;
+  font-size: 27rpx;
   line-height: 1.45;
   transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
@@ -409,16 +410,16 @@ button::after {
 }
 
 .form-item {
-  margin-bottom: 24rpx;
+  margin-bottom: 22rpx;
 }
 
 .label {
   display: flex;
   align-items: center;
   gap: 8rpx;
-  margin-bottom: 12rpx;
+  margin-bottom: 10rpx;
   color: #1F2933;
-  font-size: 26rpx;
+  font-size: 25rpx;
   font-weight: 700;
 }
 

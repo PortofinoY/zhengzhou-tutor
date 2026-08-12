@@ -11,14 +11,21 @@
 }
 
 .requirement-filter {
-  padding: 26rpx;
-  margin-bottom: 22rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.filter-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
 }
 
 .filter-title {
   color: #1F2933;
-  font-size: 36rpx;
-  font-weight: 900;
+  font-size: 34rpx;
+  font-weight: 800;
 }
 
 .filter-subtitle {
@@ -28,11 +35,25 @@
   line-height: 1.5;
 }
 
+.publish-btn {
+  flex: none;
+  min-width: 142rpx;
+  height: 58rpx;
+  margin-top: 2rpx;
+  padding: 0 20rpx;
+  border-radius: 999rpx;
+  color: #FFFFFF;
+  background: #2BB3A3;
+  font-size: 23rpx;
+  font-weight: 900;
+  box-shadow: 0 8rpx 18rpx rgba(43, 179, 163, 0.16);
+}
+
 .search-panel {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-top: 22rpx;
+  margin-top: 18rpx;
   padding: 12rpx;
   border: 1rpx solid #E5EAF0;
   border-radius: 999rpx;
@@ -81,8 +102,8 @@
 }
 
 .requirement-card {
-  margin-bottom: 18rpx;
-  padding: 24rpx;
+  margin-bottom: 16rpx;
+  padding: 22rpx;
   transition: transform 160ms ease, opacity 160ms ease;
 }
 
@@ -100,8 +121,8 @@
 
 .requirement-title {
   color: #1F2933;
-  font-size: 30rpx;
-  font-weight: 900;
+  font-size: 29rpx;
+  font-weight: 800;
 }
 
 .requirement-meta,
@@ -123,5 +144,5 @@
 }
 
 .requirement-desc {
-  margin-top: 18rpx;
+  margin-top: 14rpx;
 }
