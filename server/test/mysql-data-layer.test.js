@@ -4,8 +4,33 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { TABLE_DEFINITIONS } = require('../src/database/table-definitions');
+const { createMysqlPool } = require('../src/database/pool');
 const { TableRepository } = require('../src/repositories/table-repository');
 const { withTransaction } = require('../src/database/transaction');
+
+test('mysql pool disables query attributes for TDSQL-C compatibility', () => {
+  const expectedPool = { type: 'test-pool' };
+  let receivedOptions;
+  const mysql = {
+    createPool(options) {
+      receivedOptions = options;
+      return expectedPool;
+    }
+  };
+
+  const pool = createMysqlPool({
+    host: 'mysql.example.test',
+    port: 3306,
+    database: 'tutor_test',
+    user: 'tutor_app',
+    password: 'test-only-password',
+    connectionLimit: 5,
+    sslEnabled: true
+  }, { mysql });
+
+  assert.equal(pool, expectedPool);
+  assert.deepEqual(receivedOptions.flags, ['-CLIENT_QUERY_ATTRIBUTES']);
+});
 
 test('complete schema covers every persisted table and mapped column', () => {
   const schema = fs.readFileSync(path.join(__dirname, '..', '..', 'database', 'schema.sql'), 'utf8');

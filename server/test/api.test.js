@@ -314,6 +314,30 @@ test('bind phone uses configured WeChat phone number client', async () => {
   assert.deepEqual(calls.map((call) => call.phoneCode), ['real_phone_code_001']);
 });
 
+test('real phone code never falls back to a mock phone when WeChat is unconfigured', async () => {
+  const wechatClient = {
+    isConfigured() {
+      return false;
+    }
+  };
+
+  await withIsolatedServer({ wechatClient, allowMockFeatures: true }, async (request) => {
+    const loginRes = await request('/api/auth/wechat-login', {
+      method: 'POST',
+      body: { code: 'mock_phone_config_login', nickname: '手机号配置测试' }
+    });
+    assert.equal(loginRes.status, 200);
+
+    const bound = await request('/api/auth/bind-phone', {
+      method: 'POST',
+      token: loginRes.json.data.token,
+      body: { phoneCode: 'real_phone_code_without_wechat_config' }
+    });
+    assert.equal(bound.status, 503);
+    assert.equal(bound.json.message, '微信手机号服务未配置，请配置 WECHAT_APPID 和 WECHAT_SECRET');
+  });
+});
+
 test('wechat new user must choose role before profile submit', async () => {
   const loginRes = await api('/api/auth/wechat-login', {
     method: 'POST',
@@ -803,6 +827,14 @@ test('production mode rejects all development mock authentication and payment en
       token: loginRes.json.data.token
     });
     assert.equal(mockPay.status, 403);
+
+    const mockPhone = await isolatedApi('/api/auth/bind-phone', {
+      method: 'POST',
+      token: loginRes.json.data.token,
+      body: { phoneCode: 'mock_phone_release_forbidden' }
+    });
+    assert.equal(mockPhone.status, 403);
+    assert.equal(mockPhone.json.message, '正式环境禁止使用 mock 手机号授权');
   });
 });
 

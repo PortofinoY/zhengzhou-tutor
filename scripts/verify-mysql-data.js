@@ -13,12 +13,26 @@ function sourcePathFrom(argv) {
     : path.join(__dirname, '..', 'server', 'data', 'db.json');
 }
 
-async function main(argv = process.argv.slice(2)) {
+async function readMysqlSnapshot(store) {
+  if (typeof store.createRequestStore !== 'function') {
+    throw new Error('MysqlStore 不支持只读请求上下文');
+  }
+  const requestStore = store.createRequestStore({ readOnly: true });
+  await requestStore.beginRequest();
+  try {
+    return requestStore.snapshot();
+  } finally {
+    // 与 API 的请求生命周期保持一致；只读上下文不会提交或写入数据。
+    await requestStore.commitRequest();
+  }
+}
+
+async function main(argv = process.argv.slice(2), { createDataStoreFactory = createDataStore } = {}) {
   const source = loadJsonSnapshot(sourcePathFrom(argv));
-  const store = createDataStore({ driver: 'mysql', environment: process.env });
+  const store = createDataStoreFactory({ driver: 'mysql', environment: process.env });
   try {
     await store.initialize();
-    const result = compareSnapshots(source, store.snapshot());
+    const result = compareSnapshots(source, await readMysqlSnapshot(store));
     Object.entries(result.sourceCounts).forEach(([table, count]) => {
       console.log(`${table}: source=${count}, target=${result.targetCounts[table]}`);
     });

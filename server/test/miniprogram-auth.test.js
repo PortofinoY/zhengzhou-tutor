@@ -9,6 +9,36 @@ const {
 } = require('../../miniprogram/utils/wechat-auth');
 const { ensureProfileReady, profilePageFor } = require('../../miniprogram/utils/auth');
 
+function loadPageDefinition(relativePath, configOverrides = {}) {
+  const pagePath = require.resolve(relativePath);
+  const configPath = require.resolve('../../miniprogram/utils/config');
+  const originalPage = global.Page;
+  const originalConfigModule = require.cache[configPath] || null;
+  const configExports = require(configPath);
+  let definition;
+
+  require.cache[configPath] = {
+    ...require.cache[configPath],
+    exports: { ...configExports, ...configOverrides }
+  };
+  global.Page = (pageDefinition) => {
+    definition = pageDefinition;
+  };
+  delete require.cache[pagePath];
+
+  try {
+    require(pagePath);
+  } finally {
+    delete require.cache[pagePath];
+    if (originalConfigModule) require.cache[configPath] = originalConfigModule;
+    else delete require.cache[configPath];
+    if (originalPage === undefined) delete global.Page;
+    else global.Page = originalPage;
+  }
+
+  return definition;
+}
+
 function memoryStorage(initial = {}) {
   const store = { ...initial };
   return {
@@ -73,10 +103,109 @@ test('mock WeChat login payload keeps a stable development openid', () => {
   assert.equal(secondDevOpenid, devOpenid);
 });
 
+test('login page uses wx.login only when development login mock is disabled', async () => {
+  const originalWx = global.wx;
+  let loginCalls = 0;
+  global.wx = {
+    login({ success }) {
+      loginCalls += 1;
+      success({ code: 'real_wx_code_from_api' });
+    }
+  };
+
+  try {
+    const realLoginPage = loadPageDefinition('../../miniprogram/pages/login/login', {
+      DEVELOPMENT_MOCK_WECHAT_API: false,
+      DEVELOPMENT_MOCK_OPENID: false
+    });
+    assert.equal(await realLoginPage.getWechatLoginCode(), 'real_wx_code_from_api');
+    assert.equal(loginCalls, 1);
+
+    const mockLoginPage = loadPageDefinition('../../miniprogram/pages/login/login', {
+      DEVELOPMENT_MOCK_WECHAT_API: true,
+      DEVELOPMENT_MOCK_OPENID: true
+    });
+    const mockCode = await mockLoginPage.getWechatLoginCode();
+    assert.match(mockCode, /^mock_login_code_\d+$/);
+    assert.equal(loginCalls, 1);
+  } finally {
+    if (originalWx === undefined) delete global.wx;
+    else global.wx = originalWx;
+  }
+});
+
 test('phone authorization helpers extract real code and generate mock code', () => {
   assert.equal(extractWechatPhoneCode({ detail: { errMsg: 'getPhoneNumber:ok', code: 'real_phone_code' } }), 'real_phone_code');
   assert.equal(extractWechatPhoneCode({ detail: { errMsg: 'getPhoneNumber:fail user deny' } }), '');
   assert.equal(mockPhoneCode(123456), 'mock_phone_code_123456');
+});
+
+test('phone page forwards official code and ignores denied or empty authorization', () => {
+  const page = loadPageDefinition('../../miniprogram/pages/bind-phone/bind-phone', {
+    DEVELOPMENT_MOCK_PHONE_API: false
+  });
+  const originalWx = global.wx;
+  const boundCodes = [];
+  const toasts = [];
+  const context = {
+    data: { useMockPhoneAuth: false },
+    bindPhone(phoneCode) {
+      boundCodes.push(phoneCode);
+    }
+  };
+  global.wx = {
+    showToast(options) {
+      toasts.push(options.title);
+    }
+  };
+
+  try {
+    page.bindWechatPhone.call(context, {
+      detail: { errMsg: 'getPhoneNumber:ok', code: 'real_phone_code_from_button' }
+    });
+    page.bindWechatPhone.call(context, {
+      detail: { errMsg: 'getPhoneNumber:fail user deny' }
+    });
+    page.bindWechatPhone.call(context, {
+      detail: { errMsg: 'getPhoneNumber:ok' }
+    });
+
+    assert.deepEqual(boundCodes, ['real_phone_code_from_button']);
+    assert.deepEqual(toasts, [
+      '需要授权手机号后才可以继续完成该操作',
+      '需要授权手机号后才可以继续完成该操作'
+    ]);
+  } finally {
+    if (originalWx === undefined) delete global.wx;
+    else global.wx = originalWx;
+  }
+});
+
+test('phone mock entry is blocked in real mode and retained in mock mode', () => {
+  [
+    '../../miniprogram/pages/bind-phone/bind-phone',
+    '../../miniprogram/pages/parent-profile/parent-profile'
+  ].forEach((pagePath) => {
+    const page = loadPageDefinition(pagePath, { DEVELOPMENT_MOCK_PHONE_API: false });
+    const boundCodes = [];
+
+    page.mockWechatPhone.call({
+      data: { useMockPhoneAuth: false },
+      bindPhone(phoneCode) {
+        boundCodes.push(phoneCode);
+      }
+    });
+    assert.deepEqual(boundCodes, []);
+
+    page.mockWechatPhone.call({
+      data: { useMockPhoneAuth: true },
+      bindPhone(phoneCode) {
+        boundCodes.push(phoneCode);
+      }
+    });
+    assert.equal(boundCodes.length, 1);
+    assert.match(boundCodes[0], /^mock_phone_code_\d+$/);
+  });
 });
 
 test('onboarding profile pages preserve original redirect target', () => {

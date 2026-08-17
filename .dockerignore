@@ -1,0 +1,48 @@
+.git
+.git/**
+.gitignore
+node_modules/
+
+# Environment files and local secrets
+.env
+.env.*
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local runtime data and uploaded files
+server/data/db.json
+server/data/*.bak.json
+server/public/uploads/*
+!server/public/uploads/.gitkeep
+
+# Frontend and documentation are not needed by the backend image
+miniprogram/
+docs/
+*.docx
+
+# Archives, backup Dockerfiles and local build artifacts
+*.zip
+Dockerfile.save
+Dockerfile.*.save
+dist/
+build/
+coverage/
+.nyc_output/
+.cache/
+tmp/
+temp/
+
+# Logs and operating-system/editor files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+._*
+Thumbs.db
+*.swp
+*.swo

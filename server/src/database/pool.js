@@ -12,6 +12,7 @@ function createMysqlPool(config, options = {}) {
     enableKeepAlive: true,
     dateStrings: true,
     decimalNumbers: true,
+    flags: ['-CLIENT_QUERY_ATTRIBUTES'],
     ssl: config.sslEnabled ? { rejectUnauthorized: true } : undefined
   });
 }

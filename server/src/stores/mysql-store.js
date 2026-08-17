@@ -9,6 +9,121 @@ const { TableRepository } = require('../repositories/table-repository');
 
 const REQUIRED_SCHEMA_VERSION = 7;
 
+class MysqlRequestStore extends Store {
+  constructor(parent, { readOnly = false } = {}) {
+    super('/mysql-request-store-not-a-file', {
+      seedDemoData: false,
+      environment: { NODE_ENV: 'production' }
+    });
+    this.driver = 'mysql';
+    this.parent = parent;
+    this.pool = parent.pool;
+    this.readOnly = readOnly;
+    this.connection = null;
+    this.dirty = false;
+    this.beforeRequest = null;
+  }
+
+  load() {
+    if (!this.data) throw new Error('MySQL 请求数据快照尚未加载');
+    return this.data;
+  }
+
+  save() {
+    if (this.readOnly) throw new Error('只读请求不能写入 MySQL 数据');
+    if (!this.connection) throw new Error('MySQL 写操作必须在事务中执行');
+    this.dirty = true;
+  }
+
+  reset() {
+    throw new Error('MySQL 数据不得通过 reset() 清空');
+  }
+
+  async beginRequest() {
+    if (this.data || this.connection) throw new Error('MysqlRequestStore 不支持嵌套请求事务');
+
+    if (this.readOnly) {
+      const connection = await this.pool.getConnection();
+      try {
+        this.data = await this.parent.readSnapshot(connection);
+        this.ensureShape();
+      } finally {
+        connection.release();
+      }
+      return;
+    }
+
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      // 当前写入仍是全量快照替换，写请求必须串行以避免快照相互覆盖。
+      await connection.query('SELECT `id` FROM `app_state_lock` WHERE `id` = 1 FOR UPDATE');
+      this.connection = connection;
+      this.data = await this.parent.readSnapshot(connection, { forUpdate: true });
+      this.ensureShape();
+      this.beforeRequest = deepClone(this.data);
+      this.dirty = false;
+    } catch (error) {
+      try {
+        await connection.rollback();
+      } finally {
+        connection.release();
+      }
+      throw error;
+    }
+  }
+
+  async commitRequest() {
+    if (this.readOnly || !this.connection) return;
+    const connection = this.connection;
+    try {
+      if (this.dirty) await this.parent.persistSnapshot(connection, this.data);
+      await connection.commit();
+      this.beforeRequest = null;
+      this.dirty = false;
+    } catch (error) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        error.rollbackError = rollbackError;
+      }
+      this.data = this.beforeRequest || this.data;
+      this.beforeRequest = null;
+      this.dirty = false;
+      throw error;
+    } finally {
+      this.connection = null;
+      connection.release();
+    }
+  }
+
+  async rollbackRequest() {
+    if (this.readOnly || !this.connection) return;
+    const connection = this.connection;
+    try {
+      await connection.rollback();
+    } finally {
+      this.data = this.beforeRequest || this.data;
+      this.beforeRequest = null;
+      this.dirty = false;
+      this.connection = null;
+      connection.release();
+    }
+  }
+
+  async transaction(work) {
+    await this.beginRequest();
+    try {
+      const result = await work(this);
+      await this.commitRequest();
+      return result;
+    } catch (error) {
+      await this.rollbackRequest();
+      throw error;
+    }
+  }
+}
+
 class MysqlStore extends Store {
   constructor(options = {}) {
     super('/mysql-store-not-a-file', {
@@ -22,9 +137,6 @@ class MysqlStore extends Store {
     this.repositoryFactory = options.repositoryFactory || ((connection, definition) => (
       new TableRepository(connection, definition)
     ));
-    this.connection = null;
-    this.dirty = false;
-    this.beforeRequest = null;
     this.initialized = false;
   }
 
@@ -73,8 +185,6 @@ class MysqlStore extends Store {
     const connection = await this.pool.getConnection();
     try {
       await this.assertSchemaVersion(connection);
-      this.data = await this.readSnapshot(connection);
-      this.ensureShape();
       this.initialized = true;
       return this;
     } finally {
@@ -83,118 +193,55 @@ class MysqlStore extends Store {
   }
 
   load() {
-    if (!this.initialized || !this.data) {
+    if (!this.initialized) {
       throw new Error('MysqlStore 尚未初始化，请先 await store.initialize()');
     }
-    return this.data;
+    throw new Error('MysqlStore 必须通过请求上下文读取数据');
   }
 
   table(name) {
-    if (!this.data) throw new Error('MysqlStore 当前没有活动数据快照');
-    return this.data[name];
+    throw new Error(`MysqlStore 必须通过请求上下文读取数据：${name}`);
   }
 
   save() {
-    if (!this.connection) {
-      throw new Error('MySQL 写操作必须在事务中执行');
-    }
-    this.dirty = true;
+    throw new Error('MysqlStore 必须通过请求上下文写入数据');
   }
 
   reset() {
     throw new Error('MySQL 数据不得通过 reset() 清空');
   }
 
-  async beginRequest() {
-    if (this.connection) throw new Error('MysqlStore 不支持嵌套请求事务');
-    const connection = await this.pool.getConnection();
-    try {
-      await connection.beginTransaction();
-      await connection.query('SELECT `id` FROM `app_state_lock` WHERE `id` = 1 FOR UPDATE');
-      this.connection = connection;
-      this.data = await this.readSnapshot(connection, { forUpdate: true });
-      this.ensureShape();
-      this.beforeRequest = deepClone(this.data);
-      this.dirty = false;
-    } catch (error) {
-      try {
-        await connection.rollback();
-      } finally {
-        connection.release();
-      }
-      throw error;
-    }
+  createRequestStore({ readOnly = false } = {}) {
+    if (!this.initialized) throw new Error('MysqlStore 尚未初始化，请先 await store.initialize()');
+    return new MysqlRequestStore(this, { readOnly });
   }
 
-  async persistSnapshot() {
-    await this.connection.query('DELETE FROM `app_sequences`');
-    for (const [entityName, nextId] of Object.entries(this.data.meta.nextIds)) {
-      await this.connection.query(
+  async persistSnapshot(connection, data) {
+    await connection.query('DELETE FROM `app_sequences`');
+    for (const [entityName, nextId] of Object.entries(data.meta.nextIds)) {
+      await connection.query(
         'INSERT INTO `app_sequences` (`entity_name`, `next_id`) VALUES (?, ?)',
         [entityName, Number(nextId)]
       );
     }
     for (const tableName of DATA_TABLES) {
-      const repository = this.repositoryFactory(this.connection, TABLE_DEFINITIONS[tableName]);
-      await repository.replaceAll(this.data[tableName] || []);
-    }
-  }
-
-  async commitRequest() {
-    if (!this.connection) return;
-    const connection = this.connection;
-    try {
-      if (this.dirty) await this.persistSnapshot();
-      await connection.commit();
-      this.beforeRequest = null;
-      this.dirty = false;
-    } catch (error) {
-      try {
-        await connection.rollback();
-      } catch (rollbackError) {
-        error.rollbackError = rollbackError;
-      }
-      this.data = this.beforeRequest || this.data;
-      throw error;
-    } finally {
-      this.connection = null;
-      connection.release();
-    }
-  }
-
-  async rollbackRequest() {
-    if (!this.connection) return;
-    const connection = this.connection;
-    try {
-      await connection.rollback();
-    } finally {
-      this.data = this.beforeRequest || this.data;
-      this.beforeRequest = null;
-      this.dirty = false;
-      this.connection = null;
-      connection.release();
+      const repository = this.repositoryFactory(connection, TABLE_DEFINITIONS[tableName]);
+      await repository.replaceAll(data[tableName] || []);
     }
   }
 
   async transaction(work) {
-    await this.beginRequest();
-    try {
-      const result = await work(this);
-      await this.commitRequest();
-      return result;
-    } catch (error) {
-      await this.rollbackRequest();
-      throw error;
-    }
+    const requestStore = this.createRequestStore({ readOnly: false });
+    return requestStore.transaction(work);
   }
 
   async close() {
-    if (this.connection) await this.rollbackRequest();
     await this.pool.end();
   }
 }
 
 module.exports = {
   MysqlStore,
+  MysqlRequestStore,
   REQUIRED_SCHEMA_VERSION
 };

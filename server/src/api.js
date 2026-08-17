@@ -118,6 +118,10 @@ function cleanText(value) {
   return String(value || '').trim();
 }
 
+function isReadOnlyRequest(method) {
+  return method === 'GET' || method === 'HEAD';
+}
+
 function mockPhoneFromCode(code, userId) {
   const text = `${code || ''}${userId || ''}`;
   let hash = 0;
@@ -138,6 +142,16 @@ class TutorApi {
     );
   }
 
+  requestStoreFor(req) {
+    if (typeof this.store.createRequestStore !== 'function') return this.store;
+    return this.store.createRequestStore({ readOnly: isReadOnlyRequest(req.method) });
+  }
+
+  apiForRequestStore(store) {
+    if (store === this.store) return this;
+    return Object.assign(Object.create(Object.getPrototypeOf(this)), this, { store });
+  }
+
   async handle(req, res) {
     if (req.method === 'OPTIONS') {
       sendJson(res, 200, { code: 0, message: 'ok' });
@@ -145,30 +159,32 @@ class TutorApi {
     }
 
     let requestTransactionStarted = false;
+    const requestStore = this.requestStoreFor(req);
+    const requestApi = this.apiForRequestStore(requestStore);
     try {
-      if (typeof this.store.beginRequest === 'function') {
-        await this.store.beginRequest();
+      if (typeof requestStore.beginRequest === 'function') {
+        await requestStore.beginRequest();
         requestTransactionStarted = true;
       } else {
-        await this.store.load();
+        await requestStore.load();
       }
       const url = new URL(req.url, 'http://127.0.0.1');
       const segments = url.pathname.split('/').filter(Boolean);
       const isImageUpload = req.method === 'POST' && url.pathname === '/api/uploads';
-      if (isImageUpload) this.requireUser(req);
+      if (isImageUpload) requestApi.requireUser(req);
       const body = isImageUpload
         ? await parseImageUpload(req)
         : (['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req) : {});
-      const data = await this.route(req, req.method, segments, url.searchParams, body);
-      if (requestTransactionStarted && typeof this.store.commitRequest === 'function') {
-        await this.store.commitRequest();
+      const data = await requestApi.route(req, req.method, segments, url.searchParams, body);
+      if (requestTransactionStarted && typeof requestStore.commitRequest === 'function') {
+        await requestStore.commitRequest();
         requestTransactionStarted = false;
       }
       sendJson(res, 200, { code: 0, message: 'ok', data });
     } catch (error) {
-      if (requestTransactionStarted && typeof this.store.rollbackRequest === 'function') {
+      if (requestTransactionStarted && typeof requestStore.rollbackRequest === 'function') {
         try {
-          await this.store.rollbackRequest();
+          await requestStore.rollbackRequest();
         } catch (rollbackError) {
           error.rollbackError = rollbackError;
         }
@@ -1209,12 +1225,16 @@ class TutorApi {
     const phoneCode = body.phoneCode || body.wechatPhoneCode;
     let phone = cleanText(body.phone);
     if (!phone && phoneCode) {
-      if (this.shouldUseWechatPhoneClient(phoneCode)) {
+      const usesMockPhoneCode = cleanText(phoneCode).startsWith('mock_');
+      if (usesMockPhoneCode) {
+        if (!this.allowMockFeatures) throw createError(403, '正式环境禁止使用 mock 手机号授权');
+        phone = mockPhoneFromCode(phoneCode, user.id);
+      } else {
+        if (!this.shouldUseWechatPhoneClient(phoneCode)) {
+          throw createError(503, '微信手机号服务未配置，请配置 WECHAT_APPID 和 WECHAT_SECRET');
+        }
         const phoneInfo = await this.wechatClient.getPhoneNumber(phoneCode);
         phone = cleanText(phoneInfo.phoneNumber || phoneInfo.purePhoneNumber);
-      } else {
-        if (!this.allowMockFeatures) throw createError(503, '微信手机号服务未配置或授权 code 无效');
-        phone = mockPhoneFromCode(phoneCode, user.id);
       }
     }
     assertChinaPhone(phone);
