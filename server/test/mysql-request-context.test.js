@@ -178,6 +178,35 @@ test('a delayed wechat login does not block a concurrent teacher GET request', a
   assert.equal(loginResponse.status, 200);
 });
 
+test('trusted cloud openid login keeps the MySQL write request transaction and bypasses code2Session', async () => {
+  const harness = await initializeStore(createMysqlHarness());
+  const api = new TutorApi(harness.store, {
+    allowMockFeatures: false,
+    trustCloudWechatOpenid: true,
+    wechatClient: {
+      isConfigured: () => true,
+      code2Session: () => {
+        throw new Error('cloud identity login must not call code2Session');
+      }
+    }
+  });
+
+  const login = await invoke(api, {
+    method: 'POST',
+    url: '/api/auth/wechat-login',
+    headers: { 'x-wx-openid': 'cloud-mysql-user-openid' },
+    body: { code: 'wx-login-code' }
+  });
+
+  assert.equal(login.status, 200);
+  const connection = requestConnections(harness)[0];
+  assert.ok(connection);
+  assert.equal(hasAppStateLock(connection), true);
+  assert.equal(connection.calls.some((call) => call.type === 'beginTransaction'), true);
+  assert.equal(connection.calls.some((call) => call.type === 'commit'), true);
+  assert.equal(connection.calls.some((call) => call.type === 'release'), true);
+});
+
 test('two different wechat users receive independent transaction connections', async () => {
   const harness = await initializeStore(createMysqlHarness());
   const sessions = {

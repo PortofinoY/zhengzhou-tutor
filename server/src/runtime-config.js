@@ -58,6 +58,11 @@ function resolveAllowMockFeatures(environment = process.env, explicitValue) {
   return booleanFlag(environment.ALLOW_MOCK_FEATURES);
 }
 
+function resolveCloudWechatOpenidTrust(environment = process.env, explicitValue) {
+  if (explicitValue !== undefined) return Boolean(explicitValue);
+  return booleanFlag(environment.WECHAT_CLOUD_TRUST_OPENID);
+}
+
 function resolveSeedDemoData(environment = process.env, explicitValue) {
   if (nodeEnvironment(environment) === 'production') return false;
   if (explicitValue !== undefined) return Boolean(explicitValue);
@@ -78,6 +83,7 @@ module.exports = {
   resolveMysqlConfig,
   validateDataConfiguration,
   resolveAllowMockFeatures,
+  resolveCloudWechatOpenidTrust,
   resolveSeedDemoData,
   validateRuntimeConfiguration
 };

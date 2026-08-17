@@ -42,7 +42,10 @@ const {
 const { now } = require('./store');
 const { createWechatClient } = require('./wechat');
 const { parseImageUpload, persistImageUpload } = require('./upload');
-const { resolveAllowMockFeatures } = require('./runtime-config');
+const {
+  resolveAllowMockFeatures,
+  resolveCloudWechatOpenidTrust
+} = require('./runtime-config');
 
 const FINAL_ORDER_STATUS = [
   ORDER_STATUS.COMPLETED,
@@ -118,6 +121,13 @@ function cleanText(value) {
   return String(value || '').trim();
 }
 
+function getCloudWechatOpenId(req) {
+  const value = req && req.headers ? req.headers['x-wx-openid'] : '';
+  const openid = cleanText(Array.isArray(value) ? value[0] : value);
+  if (!openid || openid.length > 128 || !/^[A-Za-z0-9_-]+$/.test(openid)) return '';
+  return openid;
+}
+
 function isReadOnlyRequest(method) {
   return method === 'GET' || method === 'HEAD';
 }
@@ -139,6 +149,10 @@ class TutorApi {
     this.allowMockFeatures = resolveAllowMockFeatures(
       options.environment || process.env,
       options.allowMockFeatures
+    );
+    this.trustCloudWechatOpenid = resolveCloudWechatOpenidTrust(
+      options.environment || process.env,
+      options.trustCloudWechatOpenid
     );
   }
 
@@ -281,7 +295,7 @@ class TutorApi {
   }
 
   authRoutes(req, method, parts, body) {
-    if (method === 'POST' && parts[0] === 'wechat-login') return this.wechatLogin(body);
+    if (method === 'POST' && parts[0] === 'wechat-login') return this.wechatLogin(req, body);
     if (method === 'POST' && parts[0] === 'register') return this.register(body);
     if (method === 'POST' && parts[0] === 'login') return this.passwordLogin(body);
     if (method === 'POST' && parts[0] === 'logout') return this.userLogout(req);
@@ -958,7 +972,17 @@ class TutorApi {
     return true;
   }
 
-  async resolveWechatSession(body) {
+  async resolveWechatSession(req, body) {
+    const cloudOpenid = this.trustCloudWechatOpenid ? getCloudWechatOpenId(req) : '';
+    if (cloudOpenid) {
+      return {
+        code: body.code,
+        devOpenid: '',
+        openid: cloudOpenid,
+        sessionKey: '',
+        unionid: ''
+      };
+    }
     if (!this.shouldUseWechatClient(body.code, body.devOpenid)) {
       return {
         code: body.code,
@@ -977,14 +1001,14 @@ class TutorApi {
     };
   }
 
-  async wechatLogin(body) {
+  async wechatLogin(req, body) {
     assertRequired(body.code, '缺少微信登录 code');
     const usesMockIdentity = cleanText(body.code).startsWith('mock_') || Boolean(cleanText(body.devOpenid));
     if (usesMockIdentity && !this.allowMockFeatures) throw createError(403, '正式环境禁止使用 mock 微信登录');
     if (!this.allowMockFeatures && this.wechatClient && typeof this.wechatClient.isConfigured === 'function' && !this.wechatClient.isConfigured()) {
       throw createError(503, '微信服务端配置缺失，请配置 WECHAT_APPID 和 WECHAT_SECRET');
     }
-    const session = await this.resolveWechatSession(body);
+    const session = await this.resolveWechatSession(req, body);
     const { user, isNewUser } = this.store.createOrUpdateWechatUser({
       ...session,
       nickname: body.nickname,
